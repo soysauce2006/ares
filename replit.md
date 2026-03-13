@@ -22,12 +22,13 @@ pnpm workspace monorepo using TypeScript. Full-stack roster management applicati
 ## Application Features
 
 - **Hierarchical Rank System**: Customizable rank levels with names, abbreviations, and ordering
+- **3-Tier Org Hierarchy**: Division → Company → Squad (all tier names fully customizable by admin)
 - **Roster Management**: Member profiles with username, display name, rank, squad, status, notes
-- **Squad Management**: Organize members into squads
-- **User Accounts**: Role-based (admin/manager/viewer) with session auth
+- **User Accounts**: Role-based (admin/manager/viewer) with session auth; admins can change user roles
 - **MFA**: TOTP-based two-factor authentication with QR codes and backup codes
 - **Activity Logs**: Full audit trail of all actions
 - **Dashboard**: Stats cards, bar charts for rank/squad distribution, recent activity feed
+- **Site Settings** (admin only): Rename any organizational tier (e.g., "Squad" → "Fire Team", "Division" → "Battalion"), change site name/subtitle — reflected everywhere in the UI
 - **Mobile Friendly**: Responsive sidebar with collapsible mobile menu
 
 ## Structure
@@ -51,9 +52,12 @@ artifacts-monorepo/
 
 ## Database Schema
 
-- `users` - Login accounts (username, email, passwordHash, role, mfaEnabled, mfaSecret, backupCodes)
+- `users` - Login accounts (username, email, passwordHash, role, mfaEnabled, mfaSecret, backupCodes, mustChangePassword)
 - `ranks` - Rank levels (name, abbreviation, level/order, description)
-- `squads` - Squads (name, description)
+- `org_level1` - Top-tier org units (e.g., Divisions/Battalions)
+- `org_level2` - Mid-tier org units (e.g., Companies/Platoons), FK → org_level1
+- `squads` - Bottom-tier org units (e.g., Squads/Teams), FK → org_level2
+- `site_settings` - Key-value store for admin-configurable labels and site identity
 - `roster` - Roster members (username, displayName, rankId, squadId, status, notes)
 - `activity_logs` - Audit log (userId, action, entityType, entityId, details, ipAddress)
 - `sessions` - Auth sessions (sessionId, userId, mfaVerified, expiresAt)

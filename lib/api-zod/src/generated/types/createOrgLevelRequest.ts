@@ -6,8 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface UpdateSquadRequest {
-  name?: string;
+export interface CreateOrgLevelRequest {
+  name: string;
   description?: string;
-  level2Id?: number | null;
 }

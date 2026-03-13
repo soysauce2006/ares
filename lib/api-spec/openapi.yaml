@@ -390,6 +390,184 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get site settings
+      responses:
+        "200":
+          description: Site settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update site settings (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SiteSettings"
+      responses:
+        "200":
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SiteSettings"
+
+  /org-level1:
+    get:
+      operationId: listOrgLevel1
+      tags: [org]
+      summary: List top-level org units
+      responses:
+        "200":
+          description: List of top-level units
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrgLevel1"
+    post:
+      operationId: createOrgLevel1
+      tags: [org]
+      summary: Create a top-level org unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgLevelRequest"
+      responses:
+        "201":
+          description: Created unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgLevel1"
+
+  /org-level1/{id}:
+    put:
+      operationId: updateOrgLevel1
+      tags: [org]
+      summary: Update a top-level org unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgLevelRequest"
+      responses:
+        "200":
+          description: Updated unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgLevel1"
+    delete:
+      operationId: deleteOrgLevel1
+      tags: [org]
+      summary: Delete a top-level org unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /org-level2:
+    get:
+      operationId: listOrgLevel2
+      tags: [org]
+      summary: List mid-level org units
+      responses:
+        "200":
+          description: List of mid-level units
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/OrgLevel2"
+    post:
+      operationId: createOrgLevel2
+      tags: [org]
+      summary: Create a mid-level org unit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgLevel2Request"
+      responses:
+        "201":
+          description: Created unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgLevel2"
+
+  /org-level2/{id}:
+    put:
+      operationId: updateOrgLevel2
+      tags: [org]
+      summary: Update a mid-level org unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrgLevel2Request"
+      responses:
+        "200":
+          description: Updated unit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrgLevel2"
+    delete:
+      operationId: deleteOrgLevel2
+      tags: [org]
+      summary: Delete a mid-level org unit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /squads:
     get:
       operationId: listSquads
@@ -803,6 +981,87 @@ components:
         description:
           type: string
 
+    SiteSettings:
+      type: object
+      properties:
+        siteName:
+          type: string
+        siteSubtitle:
+          type: string
+        tier1Label:
+          type: string
+        tier1LabelPlural:
+          type: string
+        tier2Label:
+          type: string
+        tier2LabelPlural:
+          type: string
+        tier3Label:
+          type: string
+        tier3LabelPlural:
+          type: string
+      required: [siteName, siteSubtitle, tier1Label, tier1LabelPlural, tier2Label, tier2LabelPlural, tier3Label, tier3LabelPlural]
+
+    OrgLevel1:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, memberCount, createdAt]
+
+    OrgLevel2:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        level1Id:
+          type: integer
+          nullable: true
+        level1Name:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, name, memberCount, createdAt]
+
+    CreateOrgLevelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]
+
+    CreateOrgLevel2Request:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        level1Id:
+          type: integer
+          nullable: true
+
     Squad:
       type: object
       properties:
@@ -811,6 +1070,12 @@ components:
         name:
           type: string
         description:
+          type: string
+          nullable: true
+        level2Id:
+          type: integer
+          nullable: true
+        level2Name:
           type: string
           nullable: true
         memberCount:
@@ -824,6 +1089,9 @@ components:
           type: string
         description:
           type: string
+        level2Id:
+          type: integer
+          nullable: true
       required: [name]
 
     UpdateSquadRequest:
@@ -833,6 +1101,9 @@ components:
           type: string
         description:
           type: string
+        level2Id:
+          type: integer
+          nullable: true
 
     RosterMember:
       type: object

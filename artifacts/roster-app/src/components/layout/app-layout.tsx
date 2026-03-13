@@ -1,52 +1,44 @@
 import React, { useEffect } from "react";
 import { useLocation, Link } from "wouter";
-import { 
-  SidebarProvider, 
-  Sidebar, 
-  SidebarContent, 
-  SidebarGroup, 
-  SidebarGroupContent, 
-  SidebarGroupLabel, 
-  SidebarMenu, 
-  SidebarMenuButton, 
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
   SidebarFooter,
-  SidebarTrigger
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { 
-  Shield, 
-  Users, 
-  Activity, 
-  Crosshair, 
-  Medal, 
-  LayoutDashboard, 
-  Settings, 
+import {
+  Shield,
+  Users,
+  Activity,
+  Crosshair,
+  Medal,
+  LayoutDashboard,
+  Settings,
   LogOut,
-  User as UserIcon
+  User as UserIcon,
+  Building2,
+  Layers,
 } from "lucide-react";
 import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
-
-const navItems = [
-  { title: "Command Center", href: "/", icon: LayoutDashboard },
-  { title: "Roster", href: "/roster", icon: Users },
-  { title: "Ranks", href: "/ranks", icon: Medal },
-  { title: "Squads", href: "/squads", icon: Crosshair },
-  { title: "Activity Log", href: "/activity", icon: Activity },
-];
+import { useSettings } from "@/contexts/settings-context";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  
-  const { data: user, isLoading, isError } = useGetCurrentUser({
-    query: {
-      retry: 1,
-    }
-  });
+  const settings = useSettings();
+
+  const { data: user, isLoading, isError } = useGetCurrentUser({ query: { retry: 1 } });
 
   const { mutate: logout } = useLogout({
     mutation: {
@@ -55,18 +47,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         queryClient.setQueryData(getGetCurrentUserQueryKey(), null);
         setLocation("/login");
         toast({ title: "Logged out successfully" });
-      }
-    }
+      },
+    },
   });
 
-  // Redirect to login if unauthenticated
   useEffect(() => {
-    if (!isLoading && (isError || !user)) {
-      setLocation("/login");
-    }
+    if (!isLoading && (isError || !user)) setLocation("/login");
   }, [isLoading, isError, user, setLocation]);
 
-  // Redirect to change-password if required
   useEffect(() => {
     if (!isLoading && user && (user as any).mustChangePassword && location !== "/change-password") {
       setLocation("/change-password");
@@ -86,9 +74,25 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  const filteredNavItems = navItems;
-  const adminNavItems = [
-    { title: "Personnel Auth", href: "/users", icon: Settings },
+  const isAdmin = (user as any).role === "admin";
+  const isManagerOrAdmin = isAdmin || (user as any).role === "manager";
+
+  const mainNav = [
+    { title: "Command Center", href: "/", icon: LayoutDashboard },
+    { title: "Roster", href: "/roster", icon: Users },
+    { title: "Ranks", href: "/ranks", icon: Medal },
+  ];
+
+  const orgNav = [
+    { title: settings.tier1LabelPlural, href: "/divisions", icon: Building2 },
+    { title: settings.tier2LabelPlural, href: "/units", icon: Layers },
+    { title: settings.tier3LabelPlural, href: "/squads", icon: Crosshair },
+  ];
+
+  const adminNav = [
+    { title: "Personnel Auth", href: "/users", icon: Users },
+    { title: "Activity Log", href: "/activity", icon: Activity },
+    { title: "System Config", href: "/settings", icon: Settings },
   ];
 
   return (
@@ -101,19 +105,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                 <Shield className="w-6 h-6 text-primary" />
               </div>
               <div className="flex flex-col">
-                <span className="font-display font-bold text-lg leading-none tracking-wider text-foreground">A.R.E.S.</span>
-                <span className="text-[10px] uppercase tracking-widest text-primary font-mono">Tactical Roster Sys</span>
+                <span className="font-display font-bold text-lg leading-none tracking-wider text-foreground">{settings.siteName}</span>
+                <span className="text-[10px] uppercase tracking-widest text-primary font-mono">{settings.siteSubtitle}</span>
               </div>
             </div>
           </SidebarHeader>
-          
-          <SidebarContent className="p-2 space-y-6 mt-4">
+
+          <SidebarContent className="p-2 space-y-4 mt-4">
             <SidebarGroup>
               <SidebarGroupLabel className="text-xs font-mono text-muted-foreground uppercase tracking-widest px-2 mb-2">Main Directives</SidebarGroupLabel>
               <SidebarGroupContent>
                 <SidebarMenu>
-                  {filteredNavItems.map((item) => (
-                    <SidebarMenuItem key={item.title}>
+                  {mainNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
                       <SidebarMenuButton asChild isActive={location === item.href}>
                         <Link href={item.href} className="flex items-center gap-3 font-medium transition-all group">
                           <item.icon className="w-4 h-4 group-data-[active=true]:text-primary" />
@@ -126,13 +130,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </SidebarGroupContent>
             </SidebarGroup>
 
-            {user.role === 'admin' && (
+            <SidebarGroup>
+              <SidebarGroupLabel className="text-xs font-mono text-muted-foreground uppercase tracking-widest px-2 mb-2">Organization</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {orgNav.map((item) => (
+                    <SidebarMenuItem key={item.href}>
+                      <SidebarMenuButton asChild isActive={location === item.href}>
+                        <Link href={item.href} className="flex items-center gap-3 font-medium transition-all group">
+                          <item.icon className="w-4 h-4 group-data-[active=true]:text-primary" />
+                          <span className="uppercase tracking-wide font-display text-sm">{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+
+            {isAdmin && (
               <SidebarGroup>
                 <SidebarGroupLabel className="text-xs font-mono text-muted-foreground uppercase tracking-widest px-2 mb-2">Clearance Level: Alpha</SidebarGroupLabel>
                 <SidebarGroupContent>
                   <SidebarMenu>
-                    {adminNavItems.map((item) => (
-                      <SidebarMenuItem key={item.title}>
+                    {adminNav.map((item) => (
+                      <SidebarMenuItem key={item.href}>
                         <SidebarMenuButton asChild isActive={location === item.href}>
                           <Link href={item.href} className="flex items-center gap-3 font-medium transition-all group">
                             <item.icon className="w-4 h-4 group-data-[active=true]:text-primary" />
@@ -155,8 +177,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                     <UserIcon className="w-4 h-4 text-muted-foreground" />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold font-display uppercase">{user.username}</span>
-                    <span className="text-[10px] text-primary font-mono capitalize">{user.role}</span>
+                    <span className="text-sm font-bold font-display uppercase">{(user as any).username}</span>
+                    <span className="text-[10px] text-primary font-mono capitalize">{(user as any).role}</span>
                   </div>
                 </div>
               </div>
@@ -182,10 +204,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <div className="flex items-center gap-4 text-sm font-mono text-muted-foreground">
-              {new Date().toISOString().split('T')[0]} // {new Date().toISOString().split('T')[1].substring(0, 5)} Z
+              {new Date().toISOString().split("T")[0]} // {new Date().toISOString().split("T")[1].substring(0, 5)} Z
             </div>
           </header>
-          
+
           <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto w-full max-w-[1600px] mx-auto">
             {children}
           </main>

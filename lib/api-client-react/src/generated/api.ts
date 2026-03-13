@@ -22,6 +22,8 @@ import type {
   ChangePasswordRequest,
   ConfirmMfaRequest,
   CreateMemberRequest,
+  CreateOrgLevel2Request,
+  CreateOrgLevelRequest,
   CreateRankRequest,
   CreateSquadRequest,
   CreateUserRequest,
@@ -33,9 +35,12 @@ import type {
   LoginResponse,
   MessageResponse,
   MfaSetupResponse,
+  OrgLevel1,
+  OrgLevel2,
   Rank,
   RegisterRequest,
   RosterMember,
+  SiteSettings,
   Squad,
   UpdateMemberRequest,
   UpdateRankRequest,
@@ -1517,6 +1522,831 @@ export const useDeleteRank = <
   TContext
 > => {
   return useMutation(getDeleteRankMutationOptions(options));
+};
+
+/**
+ * @summary Get site settings
+ */
+export const getGetSettingsUrl = () => {
+  return `/api/settings`;
+};
+
+export const getSettings = async (
+  options?: RequestInit,
+): Promise<SiteSettings> => {
+  return customFetch<SiteSettings>(getGetSettingsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetSettingsQueryKey = () => {
+  return [`/api/settings`] as const;
+};
+
+export const getGetSettingsQueryOptions = <
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetSettingsQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getSettings>>> = ({
+    signal,
+  }) => getSettings({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetSettingsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getSettings>>
+>;
+export type GetSettingsQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get site settings
+ */
+
+export function useGetSettings<
+  TData = Awaited<ReturnType<typeof getSettings>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getSettings>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetSettingsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Update site settings (admin only)
+ */
+export const getUpdateSettingsUrl = () => {
+  return `/api/settings`;
+};
+
+export const updateSettings = async (
+  siteSettings: SiteSettings,
+  options?: RequestInit,
+): Promise<SiteSettings> => {
+  return customFetch<SiteSettings>(getUpdateSettingsUrl(), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(siteSettings),
+  });
+};
+
+export const getUpdateSettingsMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<SiteSettings> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<SiteSettings> },
+  TContext
+> => {
+  const mutationKey = ["updateSettings"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateSettings>>,
+    { data: BodyType<SiteSettings> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return updateSettings(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateSettingsMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateSettings>>
+>;
+export type UpdateSettingsMutationBody = BodyType<SiteSettings>;
+export type UpdateSettingsMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update site settings (admin only)
+ */
+export const useUpdateSettings = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateSettings>>,
+    TError,
+    { data: BodyType<SiteSettings> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateSettings>>,
+  TError,
+  { data: BodyType<SiteSettings> },
+  TContext
+> => {
+  return useMutation(getUpdateSettingsMutationOptions(options));
+};
+
+/**
+ * @summary List top-level org units
+ */
+export const getListOrgLevel1Url = () => {
+  return `/api/org-level1`;
+};
+
+export const listOrgLevel1 = async (
+  options?: RequestInit,
+): Promise<OrgLevel1[]> => {
+  return customFetch<OrgLevel1[]>(getListOrgLevel1Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListOrgLevel1QueryKey = () => {
+  return [`/api/org-level1`] as const;
+};
+
+export const getListOrgLevel1QueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrgLevel1>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel1>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOrgLevel1QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrgLevel1>>> = ({
+    signal,
+  }) => listOrgLevel1({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel1>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListOrgLevel1QueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrgLevel1>>
+>;
+export type ListOrgLevel1QueryError = ErrorType<unknown>;
+
+/**
+ * @summary List top-level org units
+ */
+
+export function useListOrgLevel1<
+  TData = Awaited<ReturnType<typeof listOrgLevel1>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel1>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListOrgLevel1QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a top-level org unit
+ */
+export const getCreateOrgLevel1Url = () => {
+  return `/api/org-level1`;
+};
+
+export const createOrgLevel1 = async (
+  createOrgLevelRequest: CreateOrgLevelRequest,
+  options?: RequestInit,
+): Promise<OrgLevel1> => {
+  return customFetch<OrgLevel1>(getCreateOrgLevel1Url(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createOrgLevelRequest),
+  });
+};
+
+export const getCreateOrgLevel1MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrgLevel1>>,
+    TError,
+    { data: BodyType<CreateOrgLevelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createOrgLevel1>>,
+  TError,
+  { data: BodyType<CreateOrgLevelRequest> },
+  TContext
+> => {
+  const mutationKey = ["createOrgLevel1"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createOrgLevel1>>,
+    { data: BodyType<CreateOrgLevelRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createOrgLevel1(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateOrgLevel1MutationResult = NonNullable<
+  Awaited<ReturnType<typeof createOrgLevel1>>
+>;
+export type CreateOrgLevel1MutationBody = BodyType<CreateOrgLevelRequest>;
+export type CreateOrgLevel1MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a top-level org unit
+ */
+export const useCreateOrgLevel1 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrgLevel1>>,
+    TError,
+    { data: BodyType<CreateOrgLevelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createOrgLevel1>>,
+  TError,
+  { data: BodyType<CreateOrgLevelRequest> },
+  TContext
+> => {
+  return useMutation(getCreateOrgLevel1MutationOptions(options));
+};
+
+/**
+ * @summary Update a top-level org unit
+ */
+export const getUpdateOrgLevel1Url = (id: number) => {
+  return `/api/org-level1/${id}`;
+};
+
+export const updateOrgLevel1 = async (
+  id: number,
+  createOrgLevelRequest: CreateOrgLevelRequest,
+  options?: RequestInit,
+): Promise<OrgLevel1> => {
+  return customFetch<OrgLevel1>(getUpdateOrgLevel1Url(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createOrgLevelRequest),
+  });
+};
+
+export const getUpdateOrgLevel1MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrgLevel1>>,
+    TError,
+    { id: number; data: BodyType<CreateOrgLevelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrgLevel1>>,
+  TError,
+  { id: number; data: BodyType<CreateOrgLevelRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateOrgLevel1"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrgLevel1>>,
+    { id: number; data: BodyType<CreateOrgLevelRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateOrgLevel1(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrgLevel1MutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrgLevel1>>
+>;
+export type UpdateOrgLevel1MutationBody = BodyType<CreateOrgLevelRequest>;
+export type UpdateOrgLevel1MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a top-level org unit
+ */
+export const useUpdateOrgLevel1 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrgLevel1>>,
+    TError,
+    { id: number; data: BodyType<CreateOrgLevelRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrgLevel1>>,
+  TError,
+  { id: number; data: BodyType<CreateOrgLevelRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateOrgLevel1MutationOptions(options));
+};
+
+/**
+ * @summary Delete a top-level org unit
+ */
+export const getDeleteOrgLevel1Url = (id: number) => {
+  return `/api/org-level1/${id}`;
+};
+
+export const deleteOrgLevel1 = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteOrgLevel1Url(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteOrgLevel1MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOrgLevel1>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteOrgLevel1>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteOrgLevel1"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteOrgLevel1>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteOrgLevel1(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteOrgLevel1MutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteOrgLevel1>>
+>;
+
+export type DeleteOrgLevel1MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a top-level org unit
+ */
+export const useDeleteOrgLevel1 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOrgLevel1>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteOrgLevel1>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteOrgLevel1MutationOptions(options));
+};
+
+/**
+ * @summary List mid-level org units
+ */
+export const getListOrgLevel2Url = () => {
+  return `/api/org-level2`;
+};
+
+export const listOrgLevel2 = async (
+  options?: RequestInit,
+): Promise<OrgLevel2[]> => {
+  return customFetch<OrgLevel2[]>(getListOrgLevel2Url(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListOrgLevel2QueryKey = () => {
+  return [`/api/org-level2`] as const;
+};
+
+export const getListOrgLevel2QueryOptions = <
+  TData = Awaited<ReturnType<typeof listOrgLevel2>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel2>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListOrgLevel2QueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listOrgLevel2>>> = ({
+    signal,
+  }) => listOrgLevel2({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel2>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListOrgLevel2QueryResult = NonNullable<
+  Awaited<ReturnType<typeof listOrgLevel2>>
+>;
+export type ListOrgLevel2QueryError = ErrorType<unknown>;
+
+/**
+ * @summary List mid-level org units
+ */
+
+export function useListOrgLevel2<
+  TData = Awaited<ReturnType<typeof listOrgLevel2>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listOrgLevel2>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListOrgLevel2QueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a mid-level org unit
+ */
+export const getCreateOrgLevel2Url = () => {
+  return `/api/org-level2`;
+};
+
+export const createOrgLevel2 = async (
+  createOrgLevel2Request: CreateOrgLevel2Request,
+  options?: RequestInit,
+): Promise<OrgLevel2> => {
+  return customFetch<OrgLevel2>(getCreateOrgLevel2Url(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createOrgLevel2Request),
+  });
+};
+
+export const getCreateOrgLevel2MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrgLevel2>>,
+    TError,
+    { data: BodyType<CreateOrgLevel2Request> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createOrgLevel2>>,
+  TError,
+  { data: BodyType<CreateOrgLevel2Request> },
+  TContext
+> => {
+  const mutationKey = ["createOrgLevel2"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createOrgLevel2>>,
+    { data: BodyType<CreateOrgLevel2Request> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createOrgLevel2(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateOrgLevel2MutationResult = NonNullable<
+  Awaited<ReturnType<typeof createOrgLevel2>>
+>;
+export type CreateOrgLevel2MutationBody = BodyType<CreateOrgLevel2Request>;
+export type CreateOrgLevel2MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a mid-level org unit
+ */
+export const useCreateOrgLevel2 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createOrgLevel2>>,
+    TError,
+    { data: BodyType<CreateOrgLevel2Request> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createOrgLevel2>>,
+  TError,
+  { data: BodyType<CreateOrgLevel2Request> },
+  TContext
+> => {
+  return useMutation(getCreateOrgLevel2MutationOptions(options));
+};
+
+/**
+ * @summary Update a mid-level org unit
+ */
+export const getUpdateOrgLevel2Url = (id: number) => {
+  return `/api/org-level2/${id}`;
+};
+
+export const updateOrgLevel2 = async (
+  id: number,
+  createOrgLevel2Request: CreateOrgLevel2Request,
+  options?: RequestInit,
+): Promise<OrgLevel2> => {
+  return customFetch<OrgLevel2>(getUpdateOrgLevel2Url(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createOrgLevel2Request),
+  });
+};
+
+export const getUpdateOrgLevel2MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrgLevel2>>,
+    TError,
+    { id: number; data: BodyType<CreateOrgLevel2Request> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateOrgLevel2>>,
+  TError,
+  { id: number; data: BodyType<CreateOrgLevel2Request> },
+  TContext
+> => {
+  const mutationKey = ["updateOrgLevel2"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateOrgLevel2>>,
+    { id: number; data: BodyType<CreateOrgLevel2Request> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateOrgLevel2(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateOrgLevel2MutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateOrgLevel2>>
+>;
+export type UpdateOrgLevel2MutationBody = BodyType<CreateOrgLevel2Request>;
+export type UpdateOrgLevel2MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a mid-level org unit
+ */
+export const useUpdateOrgLevel2 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateOrgLevel2>>,
+    TError,
+    { id: number; data: BodyType<CreateOrgLevel2Request> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateOrgLevel2>>,
+  TError,
+  { id: number; data: BodyType<CreateOrgLevel2Request> },
+  TContext
+> => {
+  return useMutation(getUpdateOrgLevel2MutationOptions(options));
+};
+
+/**
+ * @summary Delete a mid-level org unit
+ */
+export const getDeleteOrgLevel2Url = (id: number) => {
+  return `/api/org-level2/${id}`;
+};
+
+export const deleteOrgLevel2 = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteOrgLevel2Url(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteOrgLevel2MutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOrgLevel2>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteOrgLevel2>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteOrgLevel2"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteOrgLevel2>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteOrgLevel2(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteOrgLevel2MutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteOrgLevel2>>
+>;
+
+export type DeleteOrgLevel2MutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a mid-level org unit
+ */
+export const useDeleteOrgLevel2 = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteOrgLevel2>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteOrgLevel2>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteOrgLevel2MutationOptions(options));
 };
 
 /**

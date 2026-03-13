@@ -139,21 +139,65 @@ export interface UpdateRankRequest {
   description?: string;
 }
 
+export interface SiteSettings {
+  siteName: string;
+  siteSubtitle: string;
+  tier1Label: string;
+  tier1LabelPlural: string;
+  tier2Label: string;
+  tier2LabelPlural: string;
+  tier3Label: string;
+  tier3LabelPlural: string;
+}
+
+export interface OrgLevel1 {
+  id: number;
+  name: string;
+  description?: string | null;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface OrgLevel2 {
+  id: number;
+  name: string;
+  description?: string | null;
+  level1Id?: number | null;
+  level1Name?: string | null;
+  memberCount: number;
+  createdAt: string;
+}
+
+export interface CreateOrgLevelRequest {
+  name: string;
+  description?: string;
+}
+
+export interface CreateOrgLevel2Request {
+  name?: string;
+  description?: string;
+  level1Id?: number | null;
+}
+
 export interface Squad {
   id: number;
   name: string;
   description?: string | null;
+  level2Id?: number | null;
+  level2Name?: string | null;
   memberCount?: number;
 }
 
 export interface CreateSquadRequest {
   name: string;
   description?: string;
+  level2Id?: number | null;
 }
 
 export interface UpdateSquadRequest {
   name?: string;
   description?: string;
+  level2Id?: number | null;
 }
 
 export type RosterMemberStatus =

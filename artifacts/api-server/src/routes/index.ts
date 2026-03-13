@@ -7,6 +7,8 @@ import squadsRouter from "./squads.js";
 import rosterRouter from "./roster.js";
 import activityRouter from "./activity.js";
 import dashboardRouter from "./dashboard.js";
+import settingsRouter from "./settings.js";
+import orgRouter from "./org.js";
 
 const router: IRouter = Router();
 
@@ -18,5 +20,7 @@ router.use("/squads", squadsRouter);
 router.use("/roster", rosterRouter);
 router.use("/activity", activityRouter);
 router.use("/dashboard", dashboardRouter);
+router.use("/settings", settingsRouter);
+router.use("/", orgRouter);
 
 export default router;

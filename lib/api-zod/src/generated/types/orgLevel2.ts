@@ -6,11 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Squad {
+export interface OrgLevel2 {
   id: number;
   name: string;
   description?: string | null;
-  level2Id?: number | null;
-  level2Name?: string | null;
-  memberCount?: number;
+  level1Id?: number | null;
+  level1Name?: string | null;
+  memberCount: number;
+  createdAt: Date;
 }

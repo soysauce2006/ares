@@ -2,6 +2,7 @@ import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SettingsProvider } from "@/contexts/settings-context";
 import NotFound from "@/pages/not-found";
 import Login from "@/pages/login";
 import Dashboard from "@/pages/dashboard";
@@ -10,11 +11,14 @@ import RosterNew from "@/pages/roster/new";
 import RosterEdit from "@/pages/roster/edit";
 import Ranks from "@/pages/ranks";
 import Squads from "@/pages/squads";
+import Units from "@/pages/units";
+import Divisions from "@/pages/divisions";
 import Users from "@/pages/users";
 import Activity from "@/pages/activity";
 import SetupMfa from "@/pages/setup-mfa";
 import Profile from "@/pages/profile";
 import ChangePassword from "@/pages/change-password";
+import Settings from "@/pages/settings";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -35,11 +39,14 @@ function Router() {
       <Route path="/roster/:id/edit" component={RosterEdit} />
       <Route path="/ranks" component={Ranks} />
       <Route path="/squads" component={Squads} />
+      <Route path="/units" component={Units} />
+      <Route path="/divisions" component={Divisions} />
       <Route path="/users" component={Users} />
       <Route path="/activity" component={Activity} />
       <Route path="/setup-mfa" component={SetupMfa} />
       <Route path="/profile" component={Profile} />
       <Route path="/change-password" component={ChangePassword} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -50,7 +57,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
-          <Router />
+          <SettingsProvider>
+            <Router />
+          </SettingsProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

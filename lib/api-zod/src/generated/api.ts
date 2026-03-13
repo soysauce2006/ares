@@ -263,12 +263,161 @@ export const DeleteRankResponse = zod.object({
 });
 
 /**
+ * @summary Get site settings
+ */
+export const GetSettingsResponse = zod.object({
+  siteName: zod.string(),
+  siteSubtitle: zod.string(),
+  tier1Label: zod.string(),
+  tier1LabelPlural: zod.string(),
+  tier2Label: zod.string(),
+  tier2LabelPlural: zod.string(),
+  tier3Label: zod.string(),
+  tier3LabelPlural: zod.string(),
+});
+
+/**
+ * @summary Update site settings (admin only)
+ */
+export const UpdateSettingsBody = zod.object({
+  siteName: zod.string(),
+  siteSubtitle: zod.string(),
+  tier1Label: zod.string(),
+  tier1LabelPlural: zod.string(),
+  tier2Label: zod.string(),
+  tier2LabelPlural: zod.string(),
+  tier3Label: zod.string(),
+  tier3LabelPlural: zod.string(),
+});
+
+export const UpdateSettingsResponse = zod.object({
+  siteName: zod.string(),
+  siteSubtitle: zod.string(),
+  tier1Label: zod.string(),
+  tier1LabelPlural: zod.string(),
+  tier2Label: zod.string(),
+  tier2LabelPlural: zod.string(),
+  tier3Label: zod.string(),
+  tier3LabelPlural: zod.string(),
+});
+
+/**
+ * @summary List top-level org units
+ */
+export const ListOrgLevel1ResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  memberCount: zod.number(),
+  createdAt: zod.date(),
+});
+export const ListOrgLevel1Response = zod.array(ListOrgLevel1ResponseItem);
+
+/**
+ * @summary Create a top-level org unit
+ */
+export const CreateOrgLevel1Body = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+});
+
+/**
+ * @summary Update a top-level org unit
+ */
+export const UpdateOrgLevel1Params = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOrgLevel1Body = zod.object({
+  name: zod.string(),
+  description: zod.string().optional(),
+});
+
+export const UpdateOrgLevel1Response = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  memberCount: zod.number(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a top-level org unit
+ */
+export const DeleteOrgLevel1Params = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteOrgLevel1Response = zod.object({
+  message: zod.string(),
+});
+
+/**
+ * @summary List mid-level org units
+ */
+export const ListOrgLevel2ResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  level1Id: zod.number().nullish(),
+  level1Name: zod.string().nullish(),
+  memberCount: zod.number(),
+  createdAt: zod.date(),
+});
+export const ListOrgLevel2Response = zod.array(ListOrgLevel2ResponseItem);
+
+/**
+ * @summary Create a mid-level org unit
+ */
+export const CreateOrgLevel2Body = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  level1Id: zod.number().nullish(),
+});
+
+/**
+ * @summary Update a mid-level org unit
+ */
+export const UpdateOrgLevel2Params = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateOrgLevel2Body = zod.object({
+  name: zod.string().optional(),
+  description: zod.string().optional(),
+  level1Id: zod.number().nullish(),
+});
+
+export const UpdateOrgLevel2Response = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  description: zod.string().nullish(),
+  level1Id: zod.number().nullish(),
+  level1Name: zod.string().nullish(),
+  memberCount: zod.number(),
+  createdAt: zod.date(),
+});
+
+/**
+ * @summary Delete a mid-level org unit
+ */
+export const DeleteOrgLevel2Params = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteOrgLevel2Response = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary List all squads
  */
 export const ListSquadsResponseItem = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().nullish(),
+  level2Id: zod.number().nullish(),
+  level2Name: zod.string().nullish(),
   memberCount: zod.number().optional(),
 });
 export const ListSquadsResponse = zod.array(ListSquadsResponseItem);
@@ -279,6 +428,7 @@ export const ListSquadsResponse = zod.array(ListSquadsResponseItem);
 export const CreateSquadBody = zod.object({
   name: zod.string(),
   description: zod.string().optional(),
+  level2Id: zod.number().nullish(),
 });
 
 /**
@@ -291,12 +441,15 @@ export const UpdateSquadParams = zod.object({
 export const UpdateSquadBody = zod.object({
   name: zod.string().optional(),
   description: zod.string().optional(),
+  level2Id: zod.number().nullish(),
 });
 
 export const UpdateSquadResponse = zod.object({
   id: zod.number(),
   name: zod.string(),
   description: zod.string().nullish(),
+  level2Id: zod.number().nullish(),
+  level2Name: zod.string().nullish(),
   memberCount: zod.number().optional(),
 });
 

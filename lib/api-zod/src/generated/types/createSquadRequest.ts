@@ -9,4 +9,5 @@
 export interface CreateSquadRequest {
   name: string;
   description?: string;
+  level2Id?: number | null;
 }
