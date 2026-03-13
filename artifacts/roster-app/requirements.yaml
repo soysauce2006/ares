@@ -1,0 +1,20 @@
+packages:
+  "recharts": "Required for dashboard analytics charts"
+  "framer-motion": "Required for premium page transitions and animations"
+  "date-fns": "Required for formatting dates in tables and activity logs"
+  "react-hook-form": "Required for robust form state management"
+  "@hookform/resolvers": "Required for integrating Zod with react-hook-form"
+  "zod": "Required for client-side form validation"
+
+images:
+  - path: "artifacts/roster-app/public/images/military-bg.png"
+    description: "Abstract high-tech military command center background, dark navy blue and deep slate with subtle glowing gold grid lines, radar interface elements, and data points, extremely clean and professional"
+    aspect_ratio: "16:9"
+  - path: "artifacts/roster-app/public/images/logo.png"
+    description: "Minimalist high-tech military insignia logo, geometric gold shield or star on a transparent background, sleek and professional"
+    aspect_ratio: "1:1"
+
+notes:
+  - Using generated React Query hooks from @workspace/api-client-react
+  - Forms are built using react-hook-form with zod validation mapping to API schemas
+  - Implementing dark mode "military command" theme by default

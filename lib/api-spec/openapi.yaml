@@ -1,22 +1,34 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Roster Management API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: users
+    description: User account management
+  - name: ranks
+    description: Rank level management
+  - name: roster
+    description: Roster member management
+  - name: squads
+    description: Squad management
+  - name: activity
+    description: Activity log operations
+  - name: dashboard
+    description: Dashboard statistics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +36,537 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful or MFA required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/verify-mfa:
+    post:
+      operationId: verifyMfa
+      tags: [auth]
+      summary: Verify MFA code and complete login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyMfaRequest"
+      responses:
+        "200":
+          description: MFA verified
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/setup-mfa:
+    post:
+      operationId: setupMfa
+      tags: [auth]
+      summary: Setup MFA for the current user
+      responses:
+        "200":
+          description: MFA setup info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MfaSetupResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/confirm-mfa:
+    post:
+      operationId: confirmMfa
+      tags: [auth]
+      summary: Confirm and enable MFA after setup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmMfaRequest"
+      responses:
+        "200":
+          description: MFA enabled
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all user accounts
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserProfile"
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user account (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+
+  /users/{id}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+    delete:
+      operationId: deleteUser
+      tags: [users]
+      summary: Delete a user
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /ranks:
+    get:
+      operationId: listRanks
+      tags: [ranks]
+      summary: List all rank levels
+      responses:
+        "200":
+          description: List of ranks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Rank"
+    post:
+      operationId: createRank
+      tags: [ranks]
+      summary: Create a rank level
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateRankRequest"
+      responses:
+        "201":
+          description: Created rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rank"
+
+  /ranks/{id}:
+    put:
+      operationId: updateRank
+      tags: [ranks]
+      summary: Update a rank level
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateRankRequest"
+      responses:
+        "200":
+          description: Updated rank
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Rank"
+    delete:
+      operationId: deleteRank
+      tags: [ranks]
+      summary: Delete a rank level
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /squads:
+    get:
+      operationId: listSquads
+      tags: [squads]
+      summary: List all squads
+      responses:
+        "200":
+          description: List of squads
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Squad"
+    post:
+      operationId: createSquad
+      tags: [squads]
+      summary: Create a squad
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSquadRequest"
+      responses:
+        "201":
+          description: Created squad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Squad"
+
+  /squads/{id}:
+    put:
+      operationId: updateSquad
+      tags: [squads]
+      summary: Update a squad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSquadRequest"
+      responses:
+        "200":
+          description: Updated squad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Squad"
+    delete:
+      operationId: deleteSquad
+      tags: [squads]
+      summary: Delete a squad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /roster:
+    get:
+      operationId: listMembers
+      tags: [roster]
+      summary: List all roster members
+      responses:
+        "200":
+          description: List of roster members
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RosterMember"
+    post:
+      operationId: createMember
+      tags: [roster]
+      summary: Add a member to the roster
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMemberRequest"
+      responses:
+        "201":
+          description: Created member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterMember"
+
+  /roster/{id}:
+    get:
+      operationId: getMember
+      tags: [roster]
+      summary: Get a roster member by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Roster member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterMember"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateMember
+      tags: [roster]
+      summary: Update a roster member
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateMemberRequest"
+      responses:
+        "200":
+          description: Updated member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RosterMember"
+    delete:
+      operationId: deleteMember
+      tags: [roster]
+      summary: Remove a member from the roster
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
+  /activity:
+    get:
+      operationId: listActivityLogs
+      tags: [activity]
+      summary: Get activity logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Activity logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityLogList"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +574,384 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        inviteCode:
+          type: string
+      required: [username, email, password]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        requiresMfa:
+          type: boolean
+        mfaToken:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        message:
+          type: string
+      required: [requiresMfa]
+
+    VerifyMfaRequest:
+      type: object
+      properties:
+        mfaToken:
+          type: string
+        code:
+          type: string
+      required: [mfaToken, code]
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        message:
+          type: string
+      required: [user]
+
+    MfaSetupResponse:
+      type: object
+      properties:
+        secret:
+          type: string
+        qrCodeUrl:
+          type: string
+        backupCodes:
+          type: array
+          items:
+            type: string
+      required: [secret, qrCodeUrl]
+
+    ConfirmMfaRequest:
+      type: object
+      properties:
+        code:
+          type: string
+        secret:
+          type: string
+      required: [code, secret]
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, viewer]
+        mfaEnabled:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        lastLogin:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, username, email, role, mfaEnabled, createdAt]
+
+    CreateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, viewer]
+      required: [username, email, password, role]
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+          enum: [admin, manager, viewer]
+        password:
+          type: string
+
+    Rank:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+          description: Higher number = higher authority
+        abbreviation:
+          type: string
+        description:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+      required: [id, name, level, abbreviation]
+
+    CreateRankRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        level:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+      required: [name, level, abbreviation]
+
+    UpdateRankRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        level:
+          type: integer
+        abbreviation:
+          type: string
+        description:
+          type: string
+
+    Squad:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        memberCount:
+          type: integer
+      required: [id, name]
+
+    CreateSquadRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+      required: [name]
+
+    UpdateSquadRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+
+    RosterMember:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        displayName:
+          type: string
+          nullable: true
+        rankId:
+          type: integer
+          nullable: true
+        rankName:
+          type: string
+          nullable: true
+        rankAbbreviation:
+          type: string
+          nullable: true
+        squadId:
+          type: integer
+          nullable: true
+        squadName:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        notes:
+          type: string
+          nullable: true
+        joinedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, username, status, joinedAt, updatedAt]
+
+    CreateMemberRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+        rankId:
+          type: integer
+        squadId:
+          type: integer
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        notes:
+          type: string
+      required: [username]
+
+    UpdateMemberRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        displayName:
+          type: string
+        rankId:
+          type: integer
+          nullable: true
+        squadId:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        notes:
+          type: string
+
+    ActivityLog:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+          nullable: true
+        userUsername:
+          type: string
+          nullable: true
+        action:
+          type: string
+        entityType:
+          type: string
+          nullable: true
+        entityId:
+          type: integer
+          nullable: true
+        details:
+          type: string
+          nullable: true
+        ipAddress:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required: [id, action, createdAt]
+
+    ActivityLogList:
+      type: object
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityLog"
+        total:
+          type: integer
+      required: [logs, total]
+
+    DashboardStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+        activeMembers:
+          type: integer
+        totalSquads:
+          type: integer
+        totalRanks:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/ActivityLog"
+        membersByRank:
+          type: array
+          items:
+            $ref: "#/components/schemas/RankCount"
+        membersBySquad:
+          type: array
+          items:
+            $ref: "#/components/schemas/SquadCount"
+      required: [totalMembers, activeMembers, totalSquads, totalRanks, recentActivity, membersByRank, membersBySquad]
+
+    RankCount:
+      type: object
+      properties:
+        rankId:
+          type: integer
+        rankName:
+          type: string
+        count:
+          type: integer
+      required: [rankId, rankName, count]
+
+    SquadCount:
+      type: object
+      properties:
+        squadId:
+          type: integer
+        squadName:
+          type: string
+        count:
+          type: integer
+      required: [squadId, squadName, count]

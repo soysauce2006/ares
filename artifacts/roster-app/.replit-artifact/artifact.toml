@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Roster Manager"
+version = "1.0.0"
+id = "artifacts/roster-app"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 21327
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/roster-app run dev"
+
+[services.env]
+PORT = "21327"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/roster-app", "run", "build"]
+publicDir = "artifacts/roster-app/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
