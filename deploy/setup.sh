@@ -45,16 +45,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_DIR="$(dirname "$SCRIPT_DIR")"
 
 mkdir -p "$INSTALL_DIR"
+mkdir -p "$INSTALL_DIR/migrations"
 cp -r "$PACKAGE_DIR/server" "$INSTALL_DIR/server"
 cp -r "$PACKAGE_DIR/public" "$INSTALL_DIR/public"
-cp "$PACKAGE_DIR/migrations/0000_initial_schema.sql" "$INSTALL_DIR/migrations/" 2>/dev/null || true
-mkdir -p "$INSTALL_DIR/migrations"
 [ -f "$PACKAGE_DIR/migrations/0000_initial_schema.sql" ] && \
   cp "$PACKAGE_DIR/migrations/0000_initial_schema.sql" "$INSTALL_DIR/migrations/"
 
-# Install production Node dependencies
-cp "$PACKAGE_DIR/package.json" "$INSTALL_DIR/"
-cd "$INSTALL_DIR" && npm install --omit=dev 2>/dev/null || true
+# Install the update script so admins can run: sudo bash /opt/ares/update.sh
+cp "$PACKAGE_DIR/deploy/update.sh" "$INSTALL_DIR/update.sh"
+chmod +x "$INSTALL_DIR/update.sh"
 
 chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 echo "      Application installed to $INSTALL_DIR."
@@ -65,6 +64,10 @@ cat > "$INSTALL_DIR/.env" <<ENV
 NODE_ENV=production
 PORT=${APP_PORT}
 DATABASE_URL=${DATABASE_URL}
+
+# Git update settings — fill in to enable: sudo bash /opt/ares/update.sh
+GIT_REPO=
+GIT_BRANCH=main
 ENV
 chmod 600 "$INSTALL_DIR/.env"
 chown "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/.env"
@@ -127,4 +130,8 @@ echo "                    certbot --apache -d your-domain.com"
 echo ""
 echo "  Default login:   admin@admin.local / Password%1"
 echo "  Change the admin password immediately after first login!"
+echo ""
+echo "  To update from git later:"
+echo "    1. Edit $INSTALL_DIR/.env — add GIT_REPO=https://github.com/you/repo.git"
+echo "    2. sudo bash $INSTALL_DIR/update.sh"
 echo ""

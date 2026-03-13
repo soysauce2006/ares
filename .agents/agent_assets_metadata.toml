@@ -5,4 +5,4 @@ generated = []
 id = "JjHgBNQMG8YSI6Sbkpcy5"
 uri = "file://ares-lamp-20260313.tar.gz"
 type = "unspecified"
-title = "A.R.E.S. LAMP Deployment Package"
+title = "A.R.E.S. LAMP Deployment Package (with git update)"
