@@ -1,0 +1,11 @@
+.git
+.local
+.canvas
+node_modules
+**/node_modules
+**/dist
+artifacts/roster-app/dist
+artifacts/api-server/dist
+artifacts/mockup-sandbox
+.env
+*.log

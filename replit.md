@@ -103,3 +103,26 @@ All routes under `/api/`:
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client/types from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes
+- `bash scripts/build-prod.sh` — full production build (frontend + API, copies frontend into API dist)
+
+## Deployment
+
+### Replit Hosting (Autoscale)
+Click **Publish** in the Replit UI. The platform builds each artifact independently (frontend as static files, API as a Node.js process) and routes traffic via path-based proxy.
+
+### External Server (Docker)
+Files: `Dockerfile`, `docker-compose.yml`, `.env.example`, `docker-entrypoint.sh`
+
+```bash
+# 1. Copy and fill in environment variables
+cp .env.example .env
+
+# 2. Build and start
+docker compose up -d --build
+```
+
+- The multi-stage Dockerfile builds frontend + API and bundles them into a single Node.js process
+- `docker-entrypoint.sh` waits for Postgres, applies DB migrations once, then starts the server
+- App is served on port 8080 (configurable via `PORT` in `.env`)
+- Migrations tracked in `_ares_migrations` table — safe to restart without re-applying
+- SQL migration: `lib/db/drizzle/0000_military_molten_man.sql` (all 13 tables)

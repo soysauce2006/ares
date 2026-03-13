@@ -1,0 +1,31 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ares
+      POSTGRES_USER: ares
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ares -d ares"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      NODE_ENV: production
+      PORT: 8080
+      DATABASE_URL: postgres://ares:${POSTGRES_PASSWORD:-changeme}@db:5432/ares
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
