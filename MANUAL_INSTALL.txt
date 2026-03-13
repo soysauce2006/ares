@@ -1,0 +1,56 @@
+A.R.E.S. — Manual Installation Steps
+══════════════════════════════════════════════
+
+1. INSTALL NODE.JS 24
+   curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+   sudo apt-get install -y nodejs
+
+2. INSTALL POSTGRESQL
+   sudo apt-get install -y postgresql postgresql-client
+   sudo systemctl enable --now postgresql
+
+3. CREATE DATABASE
+   sudo -u postgres psql <<SQL
+     CREATE USER ares_user WITH PASSWORD 'your_strong_password';
+     CREATE DATABASE ares OWNER ares_user;
+   SQL
+
+4. COPY APP FILES
+   sudo mkdir -p /opt/ares
+   sudo cp -r server/ public/ migrations/ /opt/ares/
+   sudo chown -R www-data:www-data /opt/ares
+
+5. CREATE ENVIRONMENT FILE
+   sudo tee /opt/ares/.env <<ENV
+   NODE_ENV=production
+   PORT=3000
+   DATABASE_URL=postgres://ares_user:your_strong_password@localhost:5432/ares
+   ENV
+   sudo chmod 600 /opt/ares/.env
+
+6. APPLY DATABASE SCHEMA
+   psql postgres://ares_user:your_strong_password@localhost:5432/ares \
+     -f /opt/ares/migrations/0000_initial_schema.sql
+
+7. INSTALL SYSTEMD SERVICE
+   sudo cp deploy/ares.service /etc/systemd/system/ares.service
+   sudo systemctl daemon-reload
+   sudo systemctl enable ares
+   sudo systemctl start ares
+
+8. CONFIGURE APACHE PROXY
+   sudo apt-get install -y apache2
+   sudo a2enmod proxy proxy_http rewrite
+   sudo cp deploy/apache-ares.conf /etc/apache2/sites-available/ares.conf
+   # Edit ares.conf: replace "your-domain.com" with your actual domain
+   sudo a2ensite ares.conf
+   sudo a2dissite 000-default.conf
+   sudo systemctl reload apache2
+
+9. VERIFY
+   curl http://localhost:3000/api/healthz
+   # Should return: {"status":"ok"}
+
+10. ENABLE HTTPS (OPTIONAL BUT RECOMMENDED)
+    sudo apt install certbot python3-certbot-apache
+    sudo certbot --apache -d your-domain.com
