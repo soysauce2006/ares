@@ -6,6 +6,7 @@ export const clearanceLevelsTable = pgTable("clearance_levels", {
   level: integer("level").notNull(),
   description: text("description"),
   color: text("color").notNull().default("amber"),
+  permissionLevel: text("permission_level"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Shield, Plus, Edit, Trash2, AlertTriangle, ChevronUp, ChevronDown } from "lucide-react";
+import { Shield, Plus, Edit, Trash2, AlertTriangle } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import {
   useListClearances, useCreateClearance, useUpdateClearance, useDeleteClearance,
@@ -47,11 +48,29 @@ export function ClearanceBadge({ name, color, level }: { name: string; color: st
   );
 }
 
+const PERMISSION_OPTIONS = [
+  { value: "admin", label: "Admin", desc: "Full system access", colorClass: "text-red-400 bg-red-400/10 border-red-400/30" },
+  { value: "manager", label: "Manager", desc: "Manage roster & org", colorClass: "text-amber-400 bg-amber-400/10 border-amber-400/30" },
+  { value: "viewer", label: "Viewer", desc: "Read-only access", colorClass: "text-green-400 bg-green-400/10 border-green-400/30" },
+];
+
+export function PermissionBadge({ level }: { level: string | null | undefined }) {
+  if (!level) return <span className="text-muted-foreground/40 text-xs font-mono uppercase">—</span>;
+  const opt = PERMISSION_OPTIONS.find(o => o.value === level);
+  if (!opt) return null;
+  return (
+    <span className={cn("font-mono text-[10px] uppercase tracking-widest border rounded px-2 py-0.5", opt.colorClass)}>
+      {opt.label}
+    </span>
+  );
+}
+
 const clearanceSchema = z.object({
   name: z.string().min(2, "Name required").max(60),
   level: z.coerce.number().int().min(0, "Level must be 0 or higher"),
   description: z.string().optional(),
   color: z.string().default("amber"),
+  permissionLevel: z.enum(["admin", "manager", "viewer", "none"]).optional(),
 });
 
 function ColorPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
@@ -100,11 +119,11 @@ export default function Clearances() {
 
   const form = useForm<z.infer<typeof clearanceSchema>>({
     resolver: zodResolver(clearanceSchema),
-    defaultValues: { name: "", level: 1, description: "", color: "amber" },
+    defaultValues: { name: "", level: 1, description: "", color: "amber", permissionLevel: "none" },
   });
 
   const openNew = () => {
-    form.reset({ name: "", level: (clearances?.length ?? 0) + 1, description: "", color: "amber" });
+    form.reset({ name: "", level: (clearances?.length ?? 0) + 1, description: "", color: "amber", permissionLevel: "none" });
     setEditingId(null);
     setIsDialogOpen(true);
   };
@@ -115,6 +134,7 @@ export default function Clearances() {
       level: c.level,
       description: c.description ?? "",
       color: c.color ?? "amber",
+      permissionLevel: (c.permissionLevel as any) ?? "none",
     });
     setEditingId(c.id);
     setIsDialogOpen(true);
@@ -122,11 +142,15 @@ export default function Clearances() {
 
   const onSubmit = async (data: z.infer<typeof clearanceSchema>) => {
     try {
+      const payload = {
+        ...data,
+        permissionLevel: data.permissionLevel === "none" ? null : (data.permissionLevel ?? null),
+      };
       if (editingId !== null) {
-        await updateClearance({ id: editingId, data: data as any });
+        await updateClearance({ id: editingId, data: payload as any });
         toast({ title: "Clearance Updated", description: `"${data.name}" protocols updated.` });
       } else {
-        await createClearance({ data: data as any });
+        await createClearance({ data: payload as any });
         toast({ title: "Clearance Established", description: `"${data.name}" clearance level added.` });
       }
       queryClient.invalidateQueries({ queryKey: getListClearancesQueryKey() });
@@ -183,6 +207,7 @@ export default function Clearances() {
                   <TableRow className="border-border/50 hover:bg-transparent">
                     <TableHead className="font-display tracking-widest uppercase text-primary/80 w-20">Level</TableHead>
                     <TableHead className="font-display tracking-widest uppercase text-primary/80">Designation</TableHead>
+                    <TableHead className="font-display tracking-widest uppercase text-primary/80">Permission</TableHead>
                     <TableHead className="font-display tracking-widest uppercase text-primary/80">Color Code</TableHead>
                     <TableHead className="font-display tracking-widest uppercase text-primary/80">Description</TableHead>
                     <TableHead className="text-right"></TableHead>
@@ -194,6 +219,7 @@ export default function Clearances() {
                       <TableRow key={i} className="border-border/30">
                         <TableCell><Skeleton className="h-5 w-8 bg-secondary/30" /></TableCell>
                         <TableCell><Skeleton className="h-6 w-32 bg-secondary/30" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-20 bg-secondary/30" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-20 bg-secondary/30" /></TableCell>
                         <TableCell><Skeleton className="h-5 w-48 bg-secondary/30" /></TableCell>
                         <TableCell></TableCell>
@@ -213,6 +239,9 @@ export default function Clearances() {
                         </TableCell>
                         <TableCell>
                           <ClearanceBadge name={c.name} color={c.color} level={c.level} />
+                        </TableCell>
+                        <TableCell>
+                          <PermissionBadge level={(c as any).permissionLevel} />
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -296,6 +325,37 @@ export default function Clearances() {
                       {...field}
                     />
                   </FormControl>
+                  <FormMessage className="font-mono text-xs text-destructive" />
+                </FormItem>
+              )} />
+              <FormField control={form.control} name="permissionLevel" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Permission Level</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value ?? "none"}>
+                    <FormControl>
+                      <SelectTrigger className="bg-secondary/50 border-border/50 font-mono text-xs uppercase">
+                        <SelectValue placeholder="Select permission" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-card border-border/50">
+                      <SelectItem value="none" className="font-mono text-xs text-muted-foreground uppercase">
+                        — No Permission Assigned —
+                      </SelectItem>
+                      {PERMISSION_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} className="font-mono text-xs uppercase">
+                          <div className="flex items-center gap-2">
+                            <span className={cn("text-[10px] font-mono uppercase tracking-widest border rounded px-1.5 py-0.5", opt.colorClass)}>
+                              {opt.label}
+                            </span>
+                            <span className="text-muted-foreground text-[10px]">— {opt.desc}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="font-mono text-[9px] text-muted-foreground/50 uppercase mt-1">
+                    Indicates the system role permission associated with this clearance level.
+                  </p>
                   <FormMessage className="font-mono text-xs text-destructive" />
                 </FormItem>
               )} />

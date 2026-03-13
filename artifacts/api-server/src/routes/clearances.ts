@@ -7,6 +7,7 @@ import { logActivity } from "../lib/activity.js";
 const router = Router();
 
 const VALID_COLORS = ["amber", "red", "green", "blue", "violet", "orange", "gray"];
+const VALID_PERMISSIONS = ["admin", "manager", "viewer"];
 
 function formatClearance(c: typeof clearanceLevelsTable.$inferSelect) {
   return {
@@ -15,6 +16,7 @@ function formatClearance(c: typeof clearanceLevelsTable.$inferSelect) {
     level: c.level,
     description: c.description ?? null,
     color: c.color,
+    permissionLevel: c.permissionLevel ?? null,
     createdAt: c.createdAt.toISOString(),
     updatedAt: c.updatedAt.toISOString(),
   };
@@ -29,7 +31,7 @@ router.get("/", requireAuth, async (_req, res) => {
 });
 
 router.post("/", requireAuth, requireAdmin, async (req, res) => {
-  const { name, level, description, color } = req.body;
+  const { name, level, description, color, permissionLevel } = req.body;
   if (!name || typeof level !== "number") {
     res.status(400).json({ error: "name and level (number) are required" });
     return;
@@ -41,6 +43,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
       level,
       description: description ?? null,
       color: VALID_COLORS.includes(color) ? color : "amber",
+      permissionLevel: VALID_PERMISSIONS.includes(permissionLevel) ? permissionLevel : null,
     })
     .returning();
   await logActivity(req, "clearance.created", "clearance", row.id, `Created clearance "${row.name}" (Level ${row.level})`);
@@ -51,12 +54,13 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
-  const { name, level, description, color } = req.body;
+  const { name, level, description, color, permissionLevel } = req.body;
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (name !== undefined) updates.name = name;
   if (level !== undefined) updates.level = level;
   if (description !== undefined) updates.description = description ?? null;
   if (color !== undefined) updates.color = VALID_COLORS.includes(color) ? color : "amber";
+  if (permissionLevel !== undefined) updates.permissionLevel = VALID_PERMISSIONS.includes(permissionLevel) ? permissionLevel : null;
 
   const [row] = await db
     .update(clearanceLevelsTable)
