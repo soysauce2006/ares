@@ -9,6 +9,7 @@
 export * from "./activityLog";
 export * from "./activityLogList";
 export * from "./authResponse";
+export * from "./changePasswordRequest";
 export * from "./confirmMfaRequest";
 export * from "./createMemberRequest";
 export * from "./createMemberRequestStatus";

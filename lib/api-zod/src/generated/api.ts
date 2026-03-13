@@ -42,6 +42,7 @@ export const LoginResponse = zod.object({
       email: zod.string(),
       role: zod.enum(["admin", "manager", "viewer"]),
       mfaEnabled: zod.boolean(),
+      mustChangePassword: zod.boolean(),
       createdAt: zod.date(),
       lastLogin: zod.date().nullish(),
     })
@@ -64,6 +65,7 @@ export const VerifyMfaResponse = zod.object({
     email: zod.string(),
     role: zod.enum(["admin", "manager", "viewer"]),
     mfaEnabled: zod.boolean(),
+    mustChangePassword: zod.boolean(),
     createdAt: zod.date(),
     lastLogin: zod.date().nullish(),
   }),
@@ -92,6 +94,18 @@ export const ConfirmMfaResponse = zod.object({
 });
 
 /**
+ * @summary Change password (required on first login)
+ */
+export const ChangePasswordBody = zod.object({
+  currentPassword: zod.string().optional(),
+  newPassword: zod.string(),
+});
+
+export const ChangePasswordResponse = zod.object({
+  message: zod.string(),
+});
+
+/**
  * @summary Logout
  */
 export const LogoutResponse = zod.object({
@@ -107,6 +121,7 @@ export const GetCurrentUserResponse = zod.object({
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
   mfaEnabled: zod.boolean(),
+  mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
   lastLogin: zod.date().nullish(),
 });
@@ -120,6 +135,7 @@ export const ListUsersResponseItem = zod.object({
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
   mfaEnabled: zod.boolean(),
+  mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
   lastLogin: zod.date().nullish(),
 });
@@ -148,6 +164,7 @@ export const GetUserResponse = zod.object({
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
   mfaEnabled: zod.boolean(),
+  mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
   lastLogin: zod.date().nullish(),
 });
@@ -172,6 +189,7 @@ export const UpdateUserResponse = zod.object({
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
   mfaEnabled: zod.boolean(),
+  mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
   lastLogin: zod.date().nullish(),
 });

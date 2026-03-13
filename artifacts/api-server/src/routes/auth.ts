@@ -30,6 +30,7 @@ function userToProfile(user: typeof usersTable.$inferSelect) {
     email: user.email,
     role: user.role,
     mfaEnabled: user.mfaEnabled,
+    mustChangePassword: user.mustChangePassword,
     createdAt: user.createdAt.toISOString(),
     lastLogin: user.lastLogin?.toISOString() ?? null,
   };
@@ -224,6 +225,37 @@ router.post("/confirm-mfa", requireAuth, async (req, res) => {
   await logActivity(req, "auth.mfa.enabled", "user", user.id, `MFA enabled for ${user.username}`);
 
   res.json({ message: "MFA enabled successfully" });
+});
+
+router.post("/change-password", requireAuth, async (req, res) => {
+  const user = (req as any).user as typeof usersTable.$inferSelect;
+  const { currentPassword, newPassword } = req.body;
+
+  if (!newPassword || typeof newPassword !== "string" || newPassword.length < 6) {
+    res.status(400).json({ error: "New password must be at least 6 characters" });
+    return;
+  }
+
+  if (!user.mustChangePassword) {
+    if (!currentPassword) {
+      res.status(400).json({ error: "Current password is required" });
+      return;
+    }
+    const valid = await bcrypt.compare(currentPassword, user.passwordHash);
+    if (!valid) {
+      res.status(400).json({ error: "Current password is incorrect" });
+      return;
+    }
+  }
+
+  const newHash = await bcrypt.hash(newPassword, 12);
+  await db
+    .update(usersTable)
+    .set({ passwordHash: newHash, mustChangePassword: false, updatedAt: new Date() })
+    .where(eq(usersTable.id, user.id));
+
+  await logActivity(req, "auth.password.changed", "user", user.id, `Password changed for ${user.username}`);
+  res.json({ message: "Password changed successfully" });
 });
 
 router.post("/logout", async (req, res) => {

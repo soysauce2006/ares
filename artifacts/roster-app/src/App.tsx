@@ -14,6 +14,7 @@ import Users from "@/pages/users";
 import Activity from "@/pages/activity";
 import SetupMfa from "@/pages/setup-mfa";
 import Profile from "@/pages/profile";
+import ChangePassword from "@/pages/change-password";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/activity" component={Activity} />
       <Route path="/setup-mfa" component={SetupMfa} />
       <Route path="/profile" component={Profile} />
+      <Route path="/change-password" component={ChangePassword} />
       <Route component={NotFound} />
     </Switch>
   );

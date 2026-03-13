@@ -45,6 +45,7 @@ export interface UserProfile {
   email: string;
   role: UserProfileRole;
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   createdAt: string;
   lastLogin?: string | null;
 }
@@ -75,6 +76,11 @@ export interface MfaSetupResponse {
 export interface ConfirmMfaRequest {
   code: string;
   secret: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword?: string;
+  newPassword: string;
 }
 
 export type CreateUserRequestRole =

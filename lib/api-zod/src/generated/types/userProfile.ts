@@ -13,6 +13,7 @@ export interface UserProfile {
   email: string;
   role: UserProfileRole;
   mfaEnabled: boolean;
+  mustChangePassword: boolean;
   createdAt: Date;
   lastLogin?: Date | null;
 }

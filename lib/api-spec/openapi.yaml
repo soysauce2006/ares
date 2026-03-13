@@ -156,6 +156,37 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change password (required on first login)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /auth/logout:
     post:
       operationId: logout
@@ -667,6 +698,15 @@ components:
           type: string
       required: [code, secret]
 
+    ChangePasswordRequest:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required: [newPassword]
+
     UserProfile:
       type: object
       properties:
@@ -681,6 +721,8 @@ components:
           enum: [admin, manager, viewer]
         mfaEnabled:
           type: boolean
+        mustChangePassword:
+          type: boolean
         createdAt:
           type: string
           format: date-time
@@ -688,7 +730,7 @@ components:
           type: string
           format: date-time
           nullable: true
-      required: [id, username, email, role, mfaEnabled, createdAt]
+      required: [id, username, email, role, mfaEnabled, mustChangePassword, createdAt]
 
     CreateUserRequest:
       type: object

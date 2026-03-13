@@ -66,6 +66,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [isLoading, isError, user, setLocation]);
 
+  // Redirect to change-password if required
+  useEffect(() => {
+    if (!isLoading && user && (user as any).mustChangePassword && location !== "/change-password") {
+      setLocation("/change-password");
+    }
+  }, [isLoading, user, location, setLocation]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
