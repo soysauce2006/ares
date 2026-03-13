@@ -20,6 +20,7 @@ import Profile from "@/pages/profile";
 import ChangePassword from "@/pages/change-password";
 import Settings from "@/pages/settings";
 import Clearances from "@/pages/clearances";
+import Messages from "@/pages/messages";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/change-password" component={ChangePassword} />
       <Route path="/settings" component={Settings} />
       <Route path="/clearances" component={Clearances} />
+      <Route path="/messages" component={Messages} />
       <Route component={NotFound} />
     </Switch>
   );

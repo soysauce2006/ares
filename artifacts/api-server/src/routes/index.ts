@@ -11,6 +11,7 @@ import settingsRouter from "./settings.js";
 import orgRouter from "./org.js";
 import userAccessRouter from "./user-access.js";
 import clearancesRouter from "./clearances.js";
+import messagesRouter from "./messages.js";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use("/activity", activityRouter);
 router.use("/dashboard", dashboardRouter);
 router.use("/settings", settingsRouter);
 router.use("/clearances", clearancesRouter);
+router.use("/messages", messagesRouter);
 router.use("/", orgRouter);
 
 export default router;

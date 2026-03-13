@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useLocation, Link } from "wouter";
 import {
   SidebarProvider,
@@ -27,16 +27,20 @@ import {
   User as UserIcon,
   Building2,
   Layers,
+  Radio,
 } from "lucide-react";
 import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const settings = useSettings();
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const { data: user, isLoading, isError } = useGetCurrentUser({ query: { retry: 1 } });
 
@@ -51,6 +55,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     },
   });
 
+  const fetchUnread = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE}/api/messages/unread`, { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json();
+        setUnreadCount(data.count ?? 0);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     if (!isLoading && (isError || !user)) setLocation("/login");
   }, [isLoading, isError, user, setLocation]);
@@ -60,6 +74,18 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       setLocation("/change-password");
     }
   }, [isLoading, user, location, setLocation]);
+
+  useEffect(() => {
+    if (!user || isLoading) return;
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [user, isLoading, fetchUnread]);
+
+  // Reset unread when on messages page
+  useEffect(() => {
+    if (location === "/messages") setUnreadCount(0);
+  }, [location]);
 
   if (isLoading) {
     return (
@@ -75,12 +101,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   const isAdmin = (user as any).role === "admin";
-  const isManagerOrAdmin = isAdmin || (user as any).role === "manager";
 
   const mainNav = [
     { title: "Command Center", href: "/", icon: LayoutDashboard },
     { title: "Roster", href: "/roster", icon: Users },
     { title: "Ranks", href: "/ranks", icon: Medal },
+    { title: "Comms Terminal", href: "/messages", icon: Radio, badge: unreadCount > 0 ? unreadCount : undefined },
   ];
 
   const orgNav = [
@@ -122,7 +148,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                       <SidebarMenuButton asChild isActive={location === item.href}>
                         <Link href={item.href} className="flex items-center gap-3 font-medium transition-all group">
                           <item.icon className="w-4 h-4 group-data-[active=true]:text-primary" />
-                          <span className="uppercase tracking-wide font-display text-sm">{item.title}</span>
+                          <span className="uppercase tracking-wide font-display text-sm flex-1">{item.title}</span>
+                          {item.badge !== undefined && (
+                            <span className="bg-destructive text-destructive-foreground font-mono text-[9px] rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                              {item.badge > 99 ? "99+" : item.badge}
+                            </span>
+                          )}
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
