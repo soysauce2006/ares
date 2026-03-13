@@ -83,6 +83,46 @@ export interface ChangePasswordRequest {
   newPassword: string;
 }
 
+export type UserAccessGrantGrantType =
+  (typeof UserAccessGrantGrantType)[keyof typeof UserAccessGrantGrantType];
+
+export const UserAccessGrantGrantType = {
+  level1: "level1",
+  level2: "level2",
+  squad: "squad",
+} as const;
+
+export interface UserAccessGrant {
+  id: number;
+  grantType: UserAccessGrantGrantType;
+  grantId: number;
+  grantName: string;
+}
+
+export interface UserAccessResponse {
+  userId: number;
+  unrestricted: boolean;
+  grants: UserAccessGrant[];
+}
+
+export type SetUserAccessRequestGrantsItemGrantType =
+  (typeof SetUserAccessRequestGrantsItemGrantType)[keyof typeof SetUserAccessRequestGrantsItemGrantType];
+
+export const SetUserAccessRequestGrantsItemGrantType = {
+  level1: "level1",
+  level2: "level2",
+  squad: "squad",
+} as const;
+
+export type SetUserAccessRequestGrantsItem = {
+  grantType: SetUserAccessRequestGrantsItemGrantType;
+  grantId: number;
+};
+
+export interface SetUserAccessRequest {
+  grants: SetUserAccessRequestGrantsItem[];
+}
+
 export type CreateUserRequestRole =
   (typeof CreateUserRequestRole)[keyof typeof CreateUserRequestRole];
 

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db, rosterTable, ranksTable, squadsTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import {
   CreateMemberBody,
   UpdateMemberBody,
@@ -10,6 +10,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireManagerOrAdmin } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
+import { getUserAccess } from "../lib/access.js";
 
 const router = Router();
 
@@ -45,8 +46,11 @@ function formatMember(row: { member: typeof rosterTable.$inferSelect; rank: type
   };
 }
 
-router.get("/", requireAuth, async (_req, res) => {
-  const rows = await db
+router.get("/", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+
+  let query = db
     .select({
       member: rosterTable,
       rank: ranksTable,
@@ -55,8 +59,16 @@ router.get("/", requireAuth, async (_req, res) => {
     .from(rosterTable)
     .leftJoin(ranksTable, eq(rosterTable.rankId, ranksTable.id))
     .leftJoin(squadsTable, eq(rosterTable.squadId, squadsTable.id))
-    .orderBy(rosterTable.username);
+    .$dynamic();
 
+  if (!access.unrestricted && access.squadIds.length > 0) {
+    query = query.where(inArray(rosterTable.squadId, access.squadIds));
+  } else if (!access.unrestricted && access.squadIds.length === 0) {
+    res.json([]);
+    return;
+  }
+
+  const rows = await query.orderBy(rosterTable.username);
   res.json(rows.map(formatMember));
 });
 

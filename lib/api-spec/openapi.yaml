@@ -316,6 +316,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/MessageResponse"
 
+  /users/{id}/access:
+    get:
+      operationId: getUserAccess
+      tags: [users]
+      summary: Get a user's org unit access grants
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User access grants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAccessResponse"
+    put:
+      operationId: setUserAccess
+      tags: [users]
+      summary: Set a user's org unit access grants (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetUserAccessRequest"
+      responses:
+        "200":
+          description: Updated access grants
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserAccessResponse"
+
   /ranks:
     get:
       operationId: listRanks
@@ -884,6 +926,49 @@ components:
         newPassword:
           type: string
       required: [newPassword]
+
+    UserAccessGrant:
+      type: object
+      properties:
+        id:
+          type: integer
+        grantType:
+          type: string
+          enum: [level1, level2, squad]
+        grantId:
+          type: integer
+        grantName:
+          type: string
+      required: [id, grantType, grantId, grantName]
+
+    UserAccessResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+        unrestricted:
+          type: boolean
+        grants:
+          type: array
+          items:
+            $ref: "#/components/schemas/UserAccessGrant"
+      required: [userId, unrestricted, grants]
+
+    SetUserAccessRequest:
+      type: object
+      properties:
+        grants:
+          type: array
+          items:
+            type: object
+            properties:
+              grantType:
+                type: string
+                enum: [level1, level2, squad]
+              grantId:
+                type: integer
+            required: [grantType, grantId]
+      required: [grants]
 
     UserProfile:
       type: object

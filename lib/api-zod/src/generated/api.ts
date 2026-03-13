@@ -206,6 +206,55 @@ export const DeleteUserResponse = zod.object({
 });
 
 /**
+ * @summary Get a user's org unit access grants
+ */
+export const GetUserAccessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const GetUserAccessResponse = zod.object({
+  userId: zod.number(),
+  unrestricted: zod.boolean(),
+  grants: zod.array(
+    zod.object({
+      id: zod.number(),
+      grantType: zod.enum(["level1", "level2", "squad"]),
+      grantId: zod.number(),
+      grantName: zod.string(),
+    }),
+  ),
+});
+
+/**
+ * @summary Set a user's org unit access grants (admin only)
+ */
+export const SetUserAccessParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const SetUserAccessBody = zod.object({
+  grants: zod.array(
+    zod.object({
+      grantType: zod.enum(["level1", "level2", "squad"]),
+      grantId: zod.number(),
+    }),
+  ),
+});
+
+export const SetUserAccessResponse = zod.object({
+  userId: zod.number(),
+  unrestricted: zod.boolean(),
+  grants: zod.array(
+    zod.object({
+      id: zod.number(),
+      grantType: zod.enum(["level1", "level2", "squad"]),
+      grantId: zod.number(),
+      grantName: zod.string(),
+    }),
+  ),
+});
+
+/**
  * @summary List all rank levels
  */
 export const ListRanksResponseItem = zod.object({

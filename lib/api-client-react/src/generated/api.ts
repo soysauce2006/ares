@@ -40,12 +40,14 @@ import type {
   Rank,
   RegisterRequest,
   RosterMember,
+  SetUserAccessRequest,
   SiteSettings,
   Squad,
   UpdateMemberRequest,
   UpdateRankRequest,
   UpdateSquadRequest,
   UpdateUserRequest,
+  UserAccessResponse,
   UserProfile,
   VerifyMfaRequest,
 } from "./api.schemas";
@@ -1200,6 +1202,180 @@ export const useDeleteUser = <
   TContext
 > => {
   return useMutation(getDeleteUserMutationOptions(options));
+};
+
+/**
+ * @summary Get a user's org unit access grants
+ */
+export const getGetUserAccessUrl = (id: number) => {
+  return `/api/users/${id}/access`;
+};
+
+export const getUserAccess = async (
+  id: number,
+  options?: RequestInit,
+): Promise<UserAccessResponse> => {
+  return customFetch<UserAccessResponse>(getGetUserAccessUrl(id), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetUserAccessQueryKey = (id: number) => {
+  return [`/api/users/${id}/access`] as const;
+};
+
+export const getGetUserAccessQueryOptions = <
+  TData = Awaited<ReturnType<typeof getUserAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetUserAccessQueryKey(id);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserAccess>>> = ({
+    signal,
+  }) => getUserAccess(id, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!id,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getUserAccess>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetUserAccessQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getUserAccess>>
+>;
+export type GetUserAccessQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get a user's org unit access grants
+ */
+
+export function useGetUserAccess<
+  TData = Awaited<ReturnType<typeof getUserAccess>>,
+  TError = ErrorType<unknown>,
+>(
+  id: number,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getUserAccess>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetUserAccessQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Set a user's org unit access grants (admin only)
+ */
+export const getSetUserAccessUrl = (id: number) => {
+  return `/api/users/${id}/access`;
+};
+
+export const setUserAccess = async (
+  id: number,
+  setUserAccessRequest: SetUserAccessRequest,
+  options?: RequestInit,
+): Promise<UserAccessResponse> => {
+  return customFetch<UserAccessResponse>(getSetUserAccessUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(setUserAccessRequest),
+  });
+};
+
+export const getSetUserAccessMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    TError,
+    { id: number; data: BodyType<SetUserAccessRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof setUserAccess>>,
+  TError,
+  { id: number; data: BodyType<SetUserAccessRequest> },
+  TContext
+> => {
+  const mutationKey = ["setUserAccess"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    { id: number; data: BodyType<SetUserAccessRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return setUserAccess(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SetUserAccessMutationResult = NonNullable<
+  Awaited<ReturnType<typeof setUserAccess>>
+>;
+export type SetUserAccessMutationBody = BodyType<SetUserAccessRequest>;
+export type SetUserAccessMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Set a user's org unit access grants (admin only)
+ */
+export const useSetUserAccess = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof setUserAccess>>,
+    TError,
+    { id: number; data: BodyType<SetUserAccessRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof setUserAccess>>,
+  TError,
+  { id: number; data: BodyType<SetUserAccessRequest> },
+  TContext
+> => {
+  return useMutation(getSetUserAccessMutationOptions(options));
 };
 
 /**

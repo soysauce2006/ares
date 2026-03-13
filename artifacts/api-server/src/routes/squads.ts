@@ -1,13 +1,20 @@
 import { Router } from "express";
 import { db, squadsTable, rosterTable, orgLevel2Table } from "@workspace/db";
-import { eq, sql } from "drizzle-orm";
+import { eq, inArray, sql } from "drizzle-orm";
 import { requireAuth, requireManagerOrAdmin } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
+import { getUserAccess } from "../lib/access.js";
 
 const router = Router();
 
-async function getSquadsWithMeta() {
-  const squads = await db.select().from(squadsTable).orderBy(squadsTable.name);
+async function getSquadsWithMeta(squadIds?: number[]) {
+  let squadsQuery = db.select().from(squadsTable).$dynamic();
+  if (squadIds !== undefined) {
+    if (squadIds.length === 0) return [];
+    squadsQuery = squadsQuery.where(inArray(squadsTable.id, squadIds));
+  }
+  const squads = await squadsQuery.orderBy(squadsTable.name);
+
   const memberCounts = await db
     .select({ squadId: rosterTable.squadId, count: sql<number>`count(*)::int` })
     .from(rosterTable)
@@ -27,7 +34,13 @@ async function getSquadsWithMeta() {
   }));
 }
 
-router.get("/", requireAuth, async (_req, res) => {
+router.get("/", requireAuth, async (req, res) => {
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+  if (!access.unrestricted) {
+    res.json(await getSquadsWithMeta(access.squadIds));
+    return;
+  }
   res.json(await getSquadsWithMeta());
 });
 

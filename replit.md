@@ -29,6 +29,7 @@ pnpm workspace monorepo using TypeScript. Full-stack roster management applicati
 - **Activity Logs**: Full audit trail of all actions
 - **Dashboard**: Stats cards, bar charts for rank/squad distribution, recent activity feed
 - **Site Settings** (admin only): Rename any organizational tier (e.g., "Squad" → "Fire Team", "Division" → "Battalion"), change site name/subtitle — reflected everywhere in the UI
+- **User-Level Sector Access Control** (admin only): Restrict any user to specific org units (Divisions/Companies/Squads). Admins grant access at any tier level; access is hierarchically expanded when filtering roster/squads data. "Unrestricted" = sees everything; "Restricted with no grants" = sees nothing. Persisted via sentinel row.
 - **Mobile Friendly**: Responsive sidebar with collapsible mobile menu
 
 ## Structure
@@ -62,6 +63,7 @@ artifacts-monorepo/
 - `activity_logs` - Audit log (userId, action, entityType, entityId, details, ipAddress)
 - `sessions` - Auth sessions (sessionId, userId, mfaVerified, expiresAt)
 - `mfa_pending` - Temp MFA tokens during login (token, userId, expiresAt)
+- `user_access` - User-level org access grants (userId, grantType: level1|level2|squad|none, grantId); empty = unrestricted, sentinel(none:0) = restricted to nothing
 
 ## API Routes
 
@@ -75,6 +77,7 @@ All routes under `/api/`:
 - `GET /auth/me` - Current user
 - `GET/POST /users` - User management (admin only)
 - `GET/PUT/DELETE /users/:id`
+- `GET/PUT /users/:id/access` - User org access grants (admin only); returns {unrestricted, grants[]}
 - `GET/POST /ranks`
 - `PUT/DELETE /ranks/:id`
 - `GET/POST /squads`

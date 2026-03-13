@@ -9,11 +9,13 @@ import activityRouter from "./activity.js";
 import dashboardRouter from "./dashboard.js";
 import settingsRouter from "./settings.js";
 import orgRouter from "./org.js";
+import userAccessRouter from "./user-access.js";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use("/auth", authRouter);
+router.use("/users/:id/access", userAccessRouter);
 router.use("/users", usersRouter);
 router.use("/ranks", ranksRouter);
 router.use("/squads", squadsRouter);
