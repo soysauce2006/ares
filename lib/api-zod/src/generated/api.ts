@@ -41,6 +41,10 @@ export const LoginResponse = zod.object({
       username: zod.string(),
       email: zod.string(),
       role: zod.enum(["admin", "manager", "viewer"]),
+      clearanceId: zod.number().nullish(),
+      clearanceName: zod.string().nullish(),
+      clearanceLevel: zod.number().nullish(),
+      clearanceColor: zod.string().nullish(),
       mfaEnabled: zod.boolean(),
       mustChangePassword: zod.boolean(),
       createdAt: zod.date(),
@@ -64,6 +68,10 @@ export const VerifyMfaResponse = zod.object({
     username: zod.string(),
     email: zod.string(),
     role: zod.enum(["admin", "manager", "viewer"]),
+    clearanceId: zod.number().nullish(),
+    clearanceName: zod.string().nullish(),
+    clearanceLevel: zod.number().nullish(),
+    clearanceColor: zod.string().nullish(),
     mfaEnabled: zod.boolean(),
     mustChangePassword: zod.boolean(),
     createdAt: zod.date(),
@@ -120,6 +128,10 @@ export const GetCurrentUserResponse = zod.object({
   username: zod.string(),
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
+  clearanceId: zod.number().nullish(),
+  clearanceName: zod.string().nullish(),
+  clearanceLevel: zod.number().nullish(),
+  clearanceColor: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
   mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
@@ -134,6 +146,10 @@ export const ListUsersResponseItem = zod.object({
   username: zod.string(),
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
+  clearanceId: zod.number().nullish(),
+  clearanceName: zod.string().nullish(),
+  clearanceLevel: zod.number().nullish(),
+  clearanceColor: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
   mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
@@ -163,6 +179,10 @@ export const GetUserResponse = zod.object({
   username: zod.string(),
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
+  clearanceId: zod.number().nullish(),
+  clearanceName: zod.string().nullish(),
+  clearanceLevel: zod.number().nullish(),
+  clearanceColor: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
   mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
@@ -188,6 +208,10 @@ export const UpdateUserResponse = zod.object({
   username: zod.string(),
   email: zod.string(),
   role: zod.enum(["admin", "manager", "viewer"]),
+  clearanceId: zod.number().nullish(),
+  clearanceName: zod.string().nullish(),
+  clearanceLevel: zod.number().nullish(),
+  clearanceColor: zod.string().nullish(),
   mfaEnabled: zod.boolean(),
   mustChangePassword: zod.boolean(),
   createdAt: zod.date(),
@@ -252,6 +276,65 @@ export const SetUserAccessResponse = zod.object({
       grantName: zod.string(),
     }),
   ),
+});
+
+/**
+ * @summary List all clearance levels
+ */
+export const ListClearancesResponseItem = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  level: zod.number(),
+  description: zod.string().nullish(),
+  color: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+export const ListClearancesResponse = zod.array(ListClearancesResponseItem);
+
+/**
+ * @summary Create a clearance level (admin only)
+ */
+export const CreateClearanceBody = zod.object({
+  name: zod.string(),
+  level: zod.number(),
+  description: zod.string().optional(),
+  color: zod.string().optional(),
+});
+
+/**
+ * @summary Update a clearance level (admin only)
+ */
+export const UpdateClearanceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const UpdateClearanceBody = zod.object({
+  name: zod.string().optional(),
+  level: zod.number().optional(),
+  description: zod.string().optional(),
+  color: zod.string().optional(),
+});
+
+export const UpdateClearanceResponse = zod.object({
+  id: zod.number(),
+  name: zod.string(),
+  level: zod.number(),
+  description: zod.string().nullish(),
+  color: zod.string(),
+  createdAt: zod.date(),
+  updatedAt: zod.date(),
+});
+
+/**
+ * @summary Delete a clearance level (admin only)
+ */
+export const DeleteClearanceParams = zod.object({
+  id: zod.coerce.number(),
+});
+
+export const DeleteClearanceResponse = zod.object({
+  message: zod.string(),
 });
 
 /**

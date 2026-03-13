@@ -20,7 +20,9 @@ import type {
   ActivityLogList,
   AuthResponse,
   ChangePasswordRequest,
+  ClearanceLevel,
   ConfirmMfaRequest,
+  CreateClearanceRequest,
   CreateMemberRequest,
   CreateOrgLevel2Request,
   CreateOrgLevelRequest,
@@ -43,6 +45,7 @@ import type {
   SetUserAccessRequest,
   SiteSettings,
   Squad,
+  UpdateClearanceRequest,
   UpdateMemberRequest,
   UpdateRankRequest,
   UpdateSquadRequest,
@@ -1376,6 +1379,338 @@ export const useSetUserAccess = <
   TContext
 > => {
   return useMutation(getSetUserAccessMutationOptions(options));
+};
+
+/**
+ * @summary List all clearance levels
+ */
+export const getListClearancesUrl = () => {
+  return `/api/clearances`;
+};
+
+export const listClearances = async (
+  options?: RequestInit,
+): Promise<ClearanceLevel[]> => {
+  return customFetch<ClearanceLevel[]>(getListClearancesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListClearancesQueryKey = () => {
+  return [`/api/clearances`] as const;
+};
+
+export const getListClearancesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listClearances>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listClearances>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListClearancesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof listClearances>>> = ({
+    signal,
+  }) => listClearances({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listClearances>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListClearancesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listClearances>>
+>;
+export type ListClearancesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary List all clearance levels
+ */
+
+export function useListClearances<
+  TData = Awaited<ReturnType<typeof listClearances>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listClearances>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListClearancesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Create a clearance level (admin only)
+ */
+export const getCreateClearanceUrl = () => {
+  return `/api/clearances`;
+};
+
+export const createClearance = async (
+  createClearanceRequest: CreateClearanceRequest,
+  options?: RequestInit,
+): Promise<ClearanceLevel> => {
+  return customFetch<ClearanceLevel>(getCreateClearanceUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(createClearanceRequest),
+  });
+};
+
+export const getCreateClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClearance>>,
+    TError,
+    { data: BodyType<CreateClearanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof createClearance>>,
+  TError,
+  { data: BodyType<CreateClearanceRequest> },
+  TContext
+> => {
+  const mutationKey = ["createClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof createClearance>>,
+    { data: BodyType<CreateClearanceRequest> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return createClearance(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type CreateClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof createClearance>>
+>;
+export type CreateClearanceMutationBody = BodyType<CreateClearanceRequest>;
+export type CreateClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Create a clearance level (admin only)
+ */
+export const useCreateClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof createClearance>>,
+    TError,
+    { data: BodyType<CreateClearanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof createClearance>>,
+  TError,
+  { data: BodyType<CreateClearanceRequest> },
+  TContext
+> => {
+  return useMutation(getCreateClearanceMutationOptions(options));
+};
+
+/**
+ * @summary Update a clearance level (admin only)
+ */
+export const getUpdateClearanceUrl = (id: number) => {
+  return `/api/clearances/${id}`;
+};
+
+export const updateClearance = async (
+  id: number,
+  updateClearanceRequest: UpdateClearanceRequest,
+  options?: RequestInit,
+): Promise<ClearanceLevel> => {
+  return customFetch<ClearanceLevel>(getUpdateClearanceUrl(id), {
+    ...options,
+    method: "PUT",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(updateClearanceRequest),
+  });
+};
+
+export const getUpdateClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClearance>>,
+    TError,
+    { id: number; data: BodyType<UpdateClearanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof updateClearance>>,
+  TError,
+  { id: number; data: BodyType<UpdateClearanceRequest> },
+  TContext
+> => {
+  const mutationKey = ["updateClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof updateClearance>>,
+    { id: number; data: BodyType<UpdateClearanceRequest> }
+  > = (props) => {
+    const { id, data } = props ?? {};
+
+    return updateClearance(id, data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type UpdateClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof updateClearance>>
+>;
+export type UpdateClearanceMutationBody = BodyType<UpdateClearanceRequest>;
+export type UpdateClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Update a clearance level (admin only)
+ */
+export const useUpdateClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof updateClearance>>,
+    TError,
+    { id: number; data: BodyType<UpdateClearanceRequest> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof updateClearance>>,
+  TError,
+  { id: number; data: BodyType<UpdateClearanceRequest> },
+  TContext
+> => {
+  return useMutation(getUpdateClearanceMutationOptions(options));
+};
+
+/**
+ * @summary Delete a clearance level (admin only)
+ */
+export const getDeleteClearanceUrl = (id: number) => {
+  return `/api/clearances/${id}`;
+};
+
+export const deleteClearance = async (
+  id: number,
+  options?: RequestInit,
+): Promise<MessageResponse> => {
+  return customFetch<MessageResponse>(getDeleteClearanceUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteClearanceMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteClearance>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteClearance>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteClearance"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteClearance>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteClearance(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteClearanceMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteClearance>>
+>;
+
+export type DeleteClearanceMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a clearance level (admin only)
+ */
+export const useDeleteClearance = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteClearance>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteClearance>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteClearanceMutationOptions(options));
 };
 
 /**

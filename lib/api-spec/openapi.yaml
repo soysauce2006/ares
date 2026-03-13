@@ -358,6 +358,80 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserAccessResponse"
 
+  /clearances:
+    get:
+      operationId: listClearances
+      tags: [clearances]
+      summary: List all clearance levels
+      responses:
+        "200":
+          description: List of clearance levels
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ClearanceLevel"
+    post:
+      operationId: createClearance
+      tags: [clearances]
+      summary: Create a clearance level (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateClearanceRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClearanceLevel"
+
+  /clearances/{id}:
+    put:
+      operationId: updateClearance
+      tags: [clearances]
+      summary: Update a clearance level (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateClearanceRequest"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ClearanceLevel"
+    delete:
+      operationId: deleteClearance
+      tags: [clearances]
+      summary: Delete a clearance level (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+
   /ranks:
     get:
       operationId: listRanks
@@ -970,6 +1044,53 @@ components:
             required: [grantType, grantId]
       required: [grants]
 
+    ClearanceLevel:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        level:
+          type: integer
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, name, level, color, createdAt, updatedAt]
+
+    CreateClearanceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        level:
+          type: integer
+        description:
+          type: string
+        color:
+          type: string
+      required: [name, level]
+
+    UpdateClearanceRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        level:
+          type: integer
+        description:
+          type: string
+        color:
+          type: string
+
     UserProfile:
       type: object
       properties:
@@ -982,6 +1103,18 @@ components:
         role:
           type: string
           enum: [admin, manager, viewer]
+        clearanceId:
+          type: integer
+          nullable: true
+        clearanceName:
+          type: string
+          nullable: true
+        clearanceLevel:
+          type: integer
+          nullable: true
+        clearanceColor:
+          type: string
+          nullable: true
         mfaEnabled:
           type: boolean
         mustChangePassword:

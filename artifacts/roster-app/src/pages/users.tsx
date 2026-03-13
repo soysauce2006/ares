@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { format } from "date-fns";
-import { Settings, Plus, Edit, Trash2, Shield, AlertTriangle, Fingerprint, Lock, ChevronRight, ChevronDown, Check } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Shield, AlertTriangle, Fingerprint, Lock, ChevronRight, ChevronDown, Check, ShieldOff } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
@@ -20,8 +20,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   useListUsers, useCreateUser, useUpdateUser, useDeleteUser, getListUsersQueryKey,
   useGetCurrentUser, useGetUserAccess, useSetUserAccess, getGetUserAccessQueryKey,
-  useListOrgLevel1, useListOrgLevel2, useListSquads,
+  useListOrgLevel1, useListOrgLevel2, useListSquads, useListClearances,
 } from "@workspace/api-client-react";
+import { ClearanceBadge } from "@/pages/clearances";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +42,7 @@ const updateUserSchema = z.object({
   email: z.string().email().optional(),
   role: z.enum(["admin", "manager", "viewer"]).optional(),
   password: z.string().optional().or(z.literal('')),
+  clearanceId: z.coerce.number().nullable().optional(),
 });
 
 type GrantEntry = { grantType: "level1" | "level2" | "squad"; grantId: number };
@@ -310,6 +312,7 @@ export default function Users() {
 
   const { data: currentUser } = useGetCurrentUser();
   const { data: users, isLoading } = useListUsers();
+  const { data: clearances } = useListClearances();
 
   const { mutateAsync: createUser, isPending: isCreating } = useCreateUser();
   const { mutateAsync: updateUser, isPending: isUpdating } = useUpdateUser();
@@ -332,11 +335,11 @@ export default function Users() {
 
   const editForm = useForm<z.infer<typeof updateUserSchema>>({
     resolver: zodResolver(updateUserSchema),
-    defaultValues: { username: "", email: "", role: "viewer", password: "" },
+    defaultValues: { username: "", email: "", role: "viewer", password: "", clearanceId: null },
   });
 
   const openEditDialog = (user: any) => {
-    editForm.reset({ username: user.username, email: user.email, role: user.role, password: "" });
+    editForm.reset({ username: user.username, email: user.email, role: user.role, password: "", clearanceId: user.clearanceId ?? null });
     setEditingUser(user);
   };
 
@@ -354,9 +357,11 @@ export default function Users() {
 
   const onEditSubmit = async (data: z.infer<typeof updateUserSchema>) => {
     try {
-      const payload = { ...data };
+      const payload: any = { ...data };
       if (!payload.password) delete payload.password;
-      await updateUser({ id: editingUser.id, data: payload as any });
+      // clearanceId: pass null to unset, number to set
+      if (payload.clearanceId === "" || payload.clearanceId === undefined) delete payload.clearanceId;
+      await updateUser({ id: editingUser.id, data: payload });
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       toast({ title: "Auth Modified", description: "Account protocols updated." });
       setEditingUser(null);
@@ -407,7 +412,8 @@ export default function Users() {
                 <TableRow className="border-border/50 hover:bg-transparent">
                   <TableHead className="font-display tracking-widest uppercase text-primary/80">Identity</TableHead>
                   <TableHead className="font-display tracking-widest uppercase text-primary/80">Comms Link</TableHead>
-                  <TableHead className="font-display tracking-widest uppercase text-primary/80">Clearance</TableHead>
+                  <TableHead className="font-display tracking-widest uppercase text-primary/80">Role</TableHead>
+                  <TableHead className="font-display tracking-widest uppercase text-primary/80">Clearance Rank</TableHead>
                   <TableHead className="font-display tracking-widest uppercase text-primary/80">Security</TableHead>
                   <TableHead className="font-display tracking-widest uppercase text-primary/80">Last Uplink</TableHead>
                   <TableHead className="text-right"></TableHead>
@@ -420,6 +426,7 @@ export default function Users() {
                       <TableCell><Skeleton className="h-5 w-24 bg-secondary/30" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-48 bg-secondary/30" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20 rounded bg-secondary/30" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-28 rounded bg-secondary/30" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-16 bg-secondary/30" /></TableCell>
                       <TableCell><Skeleton className="h-5 w-24 bg-secondary/30" /></TableCell>
                       <TableCell></TableCell>
@@ -438,6 +445,17 @@ export default function Users() {
                       <Badge variant="outline" className={`font-mono text-[10px] uppercase tracking-widest ${getRoleColor(user.role)}`}>
                         {user.role}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {(user as any).clearanceName ? (
+                        <ClearanceBadge
+                          name={(user as any).clearanceName}
+                          color={(user as any).clearanceColor ?? "amber"}
+                          level={(user as any).clearanceLevel}
+                        />
+                      ) : (
+                        <span className="text-muted-foreground/40 text-xs font-mono uppercase">Unclassified</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       {user.mfaEnabled ? (
@@ -589,6 +607,32 @@ export default function Users() {
                       <SelectItem value="admin">Alpha (Admin)</SelectItem>
                       <SelectItem value="manager">Beta (Manager)</SelectItem>
                       <SelectItem value="viewer">Gamma (Viewer)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="font-mono text-xs text-destructive" />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="clearanceId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Clearance Rank</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                    value={field.value === null || field.value === undefined ? "none" : String(field.value)}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-secondary/50 border-border/50 font-mono text-xs uppercase">
+                        <SelectValue placeholder="No clearance assigned" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-card border-border/50">
+                      <SelectItem value="none" className="font-mono text-xs uppercase text-muted-foreground">
+                        — Unclassified —
+                      </SelectItem>
+                      {clearances?.map(c => (
+                        <SelectItem key={c.id} value={String(c.id)} className="font-mono text-xs uppercase">
+                          L{c.level} — {c.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FormMessage className="font-mono text-xs text-destructive" />

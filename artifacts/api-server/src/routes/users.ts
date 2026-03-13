@@ -1,28 +1,47 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
-import { db, usersTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, usersTable, clearanceLevelsTable } from "@workspace/db";
+import { eq, inArray } from "drizzle-orm";
 import { CreateUserBody, UpdateUserBody, GetUserParams, UpdateUserParams, DeleteUserParams } from "@workspace/api-zod";
 import { requireAuth, requireAdmin } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
 
-function userToProfile(user: typeof usersTable.$inferSelect) {
-  return {
-    id: user.id,
-    username: user.username,
-    email: user.email,
-    role: user.role,
-    mfaEnabled: user.mfaEnabled,
-    createdAt: user.createdAt.toISOString(),
-    lastLogin: user.lastLogin?.toISOString() ?? null,
-  };
+async function usersWithClearance(userRows: (typeof usersTable.$inferSelect)[]) {
+  const clearanceIds = [...new Set(userRows.map(u => u.clearanceId).filter((id): id is number => id !== null))];
+  const clearances = clearanceIds.length > 0
+    ? await db.select().from(clearanceLevelsTable).where(inArray(clearanceLevelsTable.id, clearanceIds))
+    : [];
+  const clearanceMap = new Map(clearances.map(c => [c.id, c]));
+
+  return userRows.map(user => {
+    const cl = user.clearanceId ? clearanceMap.get(user.clearanceId) : undefined;
+    return {
+      id: user.id,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      clearanceId: user.clearanceId ?? null,
+      clearanceName: cl?.name ?? null,
+      clearanceLevel: cl?.level ?? null,
+      clearanceColor: cl?.color ?? null,
+      mfaEnabled: user.mfaEnabled,
+      mustChangePassword: user.mustChangePassword,
+      createdAt: user.createdAt.toISOString(),
+      lastLogin: user.lastLogin?.toISOString() ?? null,
+    };
+  });
+}
+
+async function userToProfile(user: typeof usersTable.$inferSelect) {
+  const [profile] = await usersWithClearance([user]);
+  return profile;
 }
 
 router.get("/", requireAuth, requireAdmin, async (_req, res) => {
   const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
-  res.json(users.map(userToProfile));
+  res.json(await usersWithClearance(users));
 });
 
 router.post("/", requireAuth, requireAdmin, async (req, res) => {
@@ -50,7 +69,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
     .returning();
 
   await logActivity(req, "user.created", "user", user.id, `Created user ${username}`);
-  res.status(201).json(userToProfile(user));
+  res.status(201).json(await userToProfile(user));
 });
 
 router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
@@ -64,7 +83,7 @@ router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
     res.status(404).json({ error: "Not found" });
     return;
   }
-  res.json(userToProfile(users[0]));
+  res.json(await userToProfile(users[0]));
 });
 
 router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
@@ -84,6 +103,13 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   if (parsed.data.email) updates.email = parsed.data.email;
   if (parsed.data.role) updates.role = parsed.data.role;
   if (parsed.data.password) updates.passwordHash = await bcrypt.hash(parsed.data.password, 12);
+
+  // Support clearanceId directly from req.body (not in generated schema but we read it here)
+  const rawBody = req.body as any;
+  if ("clearanceId" in rawBody) {
+    updates.clearanceId = rawBody.clearanceId === null || rawBody.clearanceId === "" ? null : Number(rawBody.clearanceId) || null;
+  }
+
   updates.updatedAt = new Date();
 
   const [user] = await db
@@ -98,7 +124,7 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   }
 
   await logActivity(req, "user.updated", "user", user.id, `Updated user ${user.username}`);
-  res.json(userToProfile(user));
+  res.json(await userToProfile(user));
 });
 
 router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {

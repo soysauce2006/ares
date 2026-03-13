@@ -90,6 +90,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const adminNav = [
+    { title: "Clearance Ranks", href: "/clearances", icon: Shield },
     { title: "Personnel Auth", href: "/users", icon: Users },
     { title: "Activity Log", href: "/activity", icon: Activity },
     { title: "System Config", href: "/settings", icon: Settings },

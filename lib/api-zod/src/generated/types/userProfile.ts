@@ -12,6 +12,10 @@ export interface UserProfile {
   username: string;
   email: string;
   role: UserProfileRole;
+  clearanceId?: number | null;
+  clearanceName?: string | null;
+  clearanceLevel?: number | null;
+  clearanceColor?: string | null;
   mfaEnabled: boolean;
   mustChangePassword: boolean;
   createdAt: Date;

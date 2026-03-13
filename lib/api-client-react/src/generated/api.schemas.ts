@@ -44,6 +44,10 @@ export interface UserProfile {
   username: string;
   email: string;
   role: UserProfileRole;
+  clearanceId?: number | null;
+  clearanceName?: string | null;
+  clearanceLevel?: number | null;
+  clearanceColor?: string | null;
   mfaEnabled: boolean;
   mustChangePassword: boolean;
   createdAt: string;
@@ -121,6 +125,30 @@ export type SetUserAccessRequestGrantsItem = {
 
 export interface SetUserAccessRequest {
   grants: SetUserAccessRequestGrantsItem[];
+}
+
+export interface ClearanceLevel {
+  id: number;
+  name: string;
+  level: number;
+  description?: string | null;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateClearanceRequest {
+  name: string;
+  level: number;
+  description?: string;
+  color?: string;
+}
+
+export interface UpdateClearanceRequest {
+  name?: string;
+  level?: number;
+  description?: string;
+  color?: string;
 }
 
 export type CreateUserRequestRole =
