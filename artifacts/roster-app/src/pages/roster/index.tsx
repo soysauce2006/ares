@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "wouter";
 import { format } from "date-fns";
-import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal, Shield } from "lucide-react";
+import { Plus, Search, Filter, Edit, Trash2, MoreHorizontal, Shield, AlertTriangle } from "lucide-react";
 
 import { AppLayout } from "@/components/layout/app-layout";
 import { Button } from "@/components/ui/button";
