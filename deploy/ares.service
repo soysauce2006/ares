@@ -1,0 +1,31 @@
+[Unit]
+Description=A.R.E.S. Roster Management System
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/ares
+
+# ── Environment ───────────────────────────────────────────────────────────────
+EnvironmentFile=/opt/ares/.env
+Environment=NODE_ENV=production
+
+# ── Start / Stop ──────────────────────────────────────────────────────────────
+ExecStart=/usr/bin/node /opt/ares/server/index.cjs
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=ares
+
+# ── Security hardening ────────────────────────────────────────────────────────
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/ares
+
+[Install]
+WantedBy=multi-user.target
