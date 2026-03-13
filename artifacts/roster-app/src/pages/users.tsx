@@ -309,6 +309,8 @@ export default function Users() {
   const [editingUser, setEditingUser] = useState<any>(null);
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const [accessUser, setAccessUser] = useState<any>(null);
+  const [mfaResetUser, setMfaResetUser] = useState<any>(null);
+  const [isResettingMfa, setIsResettingMfa] = useState(false);
 
   const { data: currentUser } = useGetCurrentUser();
   const { data: users, isLoading } = useListUsers();
@@ -327,6 +329,22 @@ export default function Users() {
       setDeleteId(null);
     }
   });
+
+  const handleMfaReset = async () => {
+    if (!mfaResetUser) return;
+    setIsResettingMfa(true);
+    try {
+      const res = await fetch(`/api/users/${mfaResetUser.id}/reset-mfa`, { method: "POST", credentials: "include" });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error ?? "Failed"); }
+      queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+      toast({ title: "MFA Purged", description: `Multi-factor authentication has been cleared for ${mfaResetUser.username}.` });
+      setMfaResetUser(null);
+    } catch (err: any) {
+      toast({ title: "Reset Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsResettingMfa(false);
+    }
+  };
 
   const newForm = useForm<z.infer<typeof createUserSchema>>({
     resolver: zodResolver(createUserSchema),
@@ -480,6 +498,17 @@ export default function Users() {
                         >
                           <Lock className="h-4 w-4" />
                         </Button>
+                        {user.mfaEnabled && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10"
+                            title="Reset MFA"
+                            onClick={() => setMfaResetUser(user)}
+                          >
+                            <ShieldOff className="h-4 w-4" />
+                          </Button>
+                        )}
                         <Button
                           variant="ghost"
                           size="icon"
@@ -656,6 +685,30 @@ export default function Users() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!mfaResetUser} onOpenChange={(open) => !open && setMfaResetUser(null)}>
+        <AlertDialogContent className="bg-card border-amber-500/40">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display uppercase tracking-widest text-amber-500 flex items-center gap-2">
+              <ShieldOff className="w-5 h-5" /> Purge MFA Credentials
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-muted-foreground uppercase text-xs">
+              This will disable and clear all MFA tokens for{" "}
+              <span className="text-foreground font-bold">{mfaResetUser?.username}</span>.
+              The operator will be required to re-enroll their authenticator on next login.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-display uppercase tracking-widest text-xs border-border/50">Abort</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleMfaReset}
+              className="bg-amber-600 hover:bg-amber-700 text-black font-display uppercase tracking-widest text-xs"
+            >
+              {isResettingMfa ? "Purging..." : "Purge MFA"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
         <AlertDialogContent className="bg-card border-destructive/50">

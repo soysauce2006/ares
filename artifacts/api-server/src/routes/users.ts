@@ -127,6 +127,22 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(await userToProfile(user));
 });
 
+router.post("/:id/reset-mfa", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const [user] = await db
+    .update(usersTable)
+    .set({ mfaEnabled: false, mfaSecret: null, backupCodes: null, updatedAt: new Date() })
+    .where(eq(usersTable.id, id))
+    .returning();
+
+  if (!user) { res.status(404).json({ error: "Not found" }); return; }
+
+  await logActivity(req, "user.mfa.reset", "user", id, `MFA reset for user ${user.username}`);
+  res.json({ message: "MFA reset successfully", userId: id });
+});
+
 router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
   const parsed = DeleteUserParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
