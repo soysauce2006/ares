@@ -12,11 +12,17 @@ COPY lib/api-client-react/package.json lib/api-client-react/
 COPY artifacts/api-server/package.json artifacts/api-server/
 COPY artifacts/roster-app/package.json artifacts/roster-app/
 COPY scripts/package.json scripts/
+# Stub out the mobile app so pnpm resolves the workspace without pulling in Expo
+RUN echo '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' \
+    > artifacts/ares-mobile/package.json
 RUN pnpm install --frozen-lockfile
 
 # ── Build layer ────────────────────────────────────────────────────────────────
 FROM deps AS builder
 COPY . .
+# Restore the stub so pnpm doesn't try to build mobile deps
+RUN echo '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' \
+    > artifacts/ares-mobile/package.json
 # Build frontend (BASE_PATH=/ for single-origin deployment)
 RUN BASE_PATH=/ PORT=3000 pnpm --filter @workspace/roster-app run build
 # Build API server
