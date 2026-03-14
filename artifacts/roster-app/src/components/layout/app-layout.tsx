@@ -34,6 +34,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { useSettings } from "@/contexts/settings-context";
 
+function useDynamicFavicon(src: string) {
+  useEffect(() => {
+    if (!src) return;
+    let link = document.querySelector<HTMLLinkElement>("link[rel~='icon']");
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.href = src;
+  }, [src]);
+}
+
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -43,6 +56,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [unreadCount, setUnreadCount] = useState(0);
 
   const { data: user, isLoading, isError } = useGetCurrentUser({ query: { retry: 1 } });
+
+  useDynamicFavicon(settings.faviconImage);
 
   const { mutate: logout } = useLogout({
     mutation: {
@@ -124,12 +139,29 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
-      <div className="flex min-h-screen w-full bg-background bg-grid-pattern overflow-hidden">
+      <div
+        className="flex min-h-screen w-full bg-background bg-grid-pattern overflow-hidden"
+        style={
+          settings.backgroundImage
+            ? {
+                backgroundImage: `url(${settings.backgroundImage})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                backgroundRepeat: "no-repeat",
+                backgroundBlendMode: "overlay",
+              }
+            : undefined
+        }
+      >
         <Sidebar variant="sidebar" className="border-r border-border/50 bg-sidebar/95 backdrop-blur-xl">
           <SidebarHeader className="border-b border-border/50 p-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-primary/20 p-2 rounded-lg border border-primary/30 shadow-[0_0_15px_rgba(218,165,32,0.15)]">
-                <Shield className="w-6 h-6 text-primary" />
+              <div className="bg-primary/20 p-2 rounded-lg border border-primary/30 shadow-[0_0_15px_rgba(218,165,32,0.15)] shrink-0 overflow-hidden">
+                {settings.logoImage ? (
+                  <img src={settings.logoImage} alt="Logo" className="w-6 h-6 object-contain" />
+                ) : (
+                  <Shield className="w-6 h-6 text-primary" />
+                )}
               </div>
               <div className="flex flex-col">
                 <span className="font-display font-bold text-lg leading-none tracking-wider text-foreground">{settings.siteName}</span>

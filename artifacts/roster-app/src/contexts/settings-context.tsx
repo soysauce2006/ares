@@ -10,6 +10,9 @@ export interface SiteSettings {
   tier2LabelPlural: string;
   tier3Label: string;
   tier3LabelPlural: string;
+  logoImage: string;
+  backgroundImage: string;
+  faviconImage: string;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -21,6 +24,9 @@ const DEFAULTS: SiteSettings = {
   tier2LabelPlural: "Companies",
   tier3Label: "Squad",
   tier3LabelPlural: "Squads",
+  logoImage: "",
+  backgroundImage: "",
+  faviconImage: "",
 };
 
 const SettingsContext = createContext<SiteSettings>(DEFAULTS);
