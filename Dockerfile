@@ -1,5 +1,6 @@
 FROM node:24-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Pin pnpm to the exact version used to generate pnpm-lock.yaml
+RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 WORKDIR /app
 
 # ── Dependency layer ───────────────────────────────────────────────────────────
@@ -12,24 +13,32 @@ COPY lib/api-client-react/package.json lib/api-client-react/
 COPY artifacts/api-server/package.json artifacts/api-server/
 COPY artifacts/roster-app/package.json artifacts/roster-app/
 COPY scripts/package.json scripts/
-# Stub the mobile app so pnpm resolves the workspace without pulling in Expo
-RUN mkdir -p artifacts/ares-mobile && printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' > artifacts/ares-mobile/package.json
-# --no-frozen-lockfile lets pnpm reconcile the stub (no Expo deps) with the
-# lockfile; all other packages still install at their locked versions.
+# Stub the mobile app — pnpm must know about it (it's in the workspace) but we
+# don't want to pull in hundreds of Expo packages.
+RUN mkdir -p artifacts/ares-mobile && \
+    printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' \
+    > artifacts/ares-mobile/package.json
 RUN pnpm install --no-frozen-lockfile
 
 # ── Build layer ────────────────────────────────────────────────────────────────
 FROM deps AS builder
-COPY . .
-# Restore the stub — COPY . . overwrites with the real package.json; re-stub it
-# so pnpm does not attempt to install Expo inside the Docker image
-RUN printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' > artifacts/ares-mobile/package.json
+# Copy only the source that the server-side build needs.
+# We intentionally skip artifacts/ares-mobile and the root lockfile so the
+# stub package.json and reconciled node_modules from the deps stage are kept.
+COPY tsconfig.json tsconfig.base.json ./
+COPY lib/ lib/
+COPY scripts/ scripts/
+COPY artifacts/api-server/ artifacts/api-server/
+COPY artifacts/roster-app/ artifacts/roster-app/
+
 # Build frontend (BASE_PATH=/ for single-origin deployment)
-RUN BASE_PATH=/ PORT=3000 pnpm --filter @workspace/roster-app run build
+RUN BASE_PATH=/ PORT=3000 NODE_ENV=production \
+    pnpm --filter @workspace/roster-app run build
 # Build API server
 RUN pnpm --filter @workspace/api-server run build
 # Bundle frontend into API server dist so a single process serves everything
-RUN mkdir -p artifacts/api-server/dist/public && cp -r artifacts/roster-app/dist/public/. artifacts/api-server/dist/public/
+RUN mkdir -p artifacts/api-server/dist/public && \
+    cp -r artifacts/roster-app/dist/public/. artifacts/api-server/dist/public/
 
 # ── Production runner ──────────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
@@ -37,7 +46,8 @@ RUN apk add --no-cache postgresql-client
 ENV NODE_ENV=production
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 ares && adduser --system --uid 1001 ares
+RUN addgroup --system --gid 1001 ares && \
+    adduser --system --uid 1001 ares
 
 COPY --from=builder --chown=ares:ares /app/node_modules ./node_modules
 COPY --from=builder --chown=ares:ares /app/artifacts/api-server/dist ./dist
