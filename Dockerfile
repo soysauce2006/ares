@@ -12,24 +12,22 @@ COPY lib/api-client-react/package.json lib/api-client-react/
 COPY artifacts/api-server/package.json artifacts/api-server/
 COPY artifacts/roster-app/package.json artifacts/roster-app/
 COPY scripts/package.json scripts/
-# Stub out the mobile app so pnpm resolves the workspace without pulling in Expo
-RUN echo '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' \
-    > artifacts/ares-mobile/package.json
+# Stub the mobile app so pnpm resolves the workspace without pulling in Expo
+RUN mkdir -p artifacts/ares-mobile && printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' > artifacts/ares-mobile/package.json
 RUN pnpm install --frozen-lockfile
 
 # ── Build layer ────────────────────────────────────────────────────────────────
 FROM deps AS builder
 COPY . .
-# Restore the stub so pnpm doesn't try to build mobile deps
-RUN echo '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' \
-    > artifacts/ares-mobile/package.json
+# Restore the stub — COPY . . overwrites with the real package.json; re-stub it
+# so pnpm does not attempt to install Expo inside the Docker image
+RUN printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' > artifacts/ares-mobile/package.json
 # Build frontend (BASE_PATH=/ for single-origin deployment)
 RUN BASE_PATH=/ PORT=3000 pnpm --filter @workspace/roster-app run build
 # Build API server
 RUN pnpm --filter @workspace/api-server run build
 # Bundle frontend into API server dist so a single process serves everything
-RUN mkdir -p artifacts/api-server/dist/public && \
-    cp -r artifacts/roster-app/dist/public/. artifacts/api-server/dist/public/
+RUN mkdir -p artifacts/api-server/dist/public && cp -r artifacts/roster-app/dist/public/. artifacts/api-server/dist/public/
 
 # ── Production runner ──────────────────────────────────────────────────────────
 FROM node:24-alpine AS runner
@@ -37,8 +35,7 @@ RUN apk add --no-cache postgresql-client
 ENV NODE_ENV=production
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 ares && \
-    adduser --system --uid 1001 ares
+RUN addgroup --system --gid 1001 ares && adduser --system --uid 1001 ares
 
 COPY --from=builder --chown=ares:ares /app/node_modules ./node_modules
 COPY --from=builder --chown=ares:ares /app/artifacts/api-server/dist ./dist
