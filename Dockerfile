@@ -1,4 +1,4 @@
-FROM node:24-alpine AS base
+FROM node:24-slim AS base
 # Pin pnpm to the exact version used to generate pnpm-lock.yaml
 RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
 WORKDIR /app
@@ -41,13 +41,13 @@ RUN mkdir -p artifacts/api-server/dist/public && \
     cp -r artifacts/roster-app/dist/public/. artifacts/api-server/dist/public/
 
 # ── Production runner ──────────────────────────────────────────────────────────
-FROM node:24-alpine AS runner
-RUN apk add --no-cache postgresql-client
+FROM node:24-slim AS runner
+RUN apt-get update -qq && apt-get install -y --no-install-recommends postgresql-client && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 WORKDIR /app
 
-RUN addgroup --system --gid 1001 ares && \
-    adduser --system --uid 1001 ares
+RUN groupadd --system --gid 1001 ares && \
+    useradd --system --uid 1001 --gid 1001 ares
 
 COPY --from=builder --chown=ares:ares /app/node_modules ./node_modules
 COPY --from=builder --chown=ares:ares /app/artifacts/api-server/dist ./dist

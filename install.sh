@@ -142,10 +142,16 @@ fi
 set -a; source "$REPO_DIR/.env"; set +a
 
 # ── 4. Build and start containers ─────────────────────────────────────────────
-info "Step 4/5 — Building and starting containers (this takes a few minutes)..."
+info "Step 4/5 — Building image (this takes a few minutes — full output shown)..."
 
+# Build separately so the full log is always visible.
+# --no-cache ensures a clean build and avoids stale layer bugs.
 docker compose -f "$REPO_DIR/docker-compose.yml" --env-file "$REPO_DIR/.env" \
-  up -d --build --remove-orphans
+  build --no-cache
+
+info "Starting containers..."
+docker compose -f "$REPO_DIR/docker-compose.yml" --env-file "$REPO_DIR/.env" \
+  up -d --remove-orphans
 
 success "Containers started."
 
