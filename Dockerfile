@@ -14,7 +14,9 @@ COPY artifacts/roster-app/package.json artifacts/roster-app/
 COPY scripts/package.json scripts/
 # Stub the mobile app so pnpm resolves the workspace without pulling in Expo
 RUN mkdir -p artifacts/ares-mobile && printf '{"name":"@workspace/ares-mobile","version":"0.0.0","private":true}' > artifacts/ares-mobile/package.json
-RUN pnpm install --frozen-lockfile
+# --no-frozen-lockfile lets pnpm reconcile the stub (no Expo deps) with the
+# lockfile; all other packages still install at their locked versions.
+RUN pnpm install --no-frozen-lockfile
 
 # ── Build layer ────────────────────────────────────────────────────────────────
 FROM deps AS builder
