@@ -10,5 +10,3 @@ artifacts/mockup-sandbox
 .env
 *.log
 *.tar.gz
-.lamp-staging
-deploy/

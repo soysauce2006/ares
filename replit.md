@@ -103,26 +103,33 @@ All routes under `/api/`:
 - `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API client/types from OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes
-- `bash scripts/build-prod.sh` — full production build (frontend + API, copies frontend into API dist)
 
 ## Deployment
 
 ### Replit Hosting (Autoscale)
 Click **Publish** in the Replit UI. The platform builds each artifact independently (frontend as static files, API as a Node.js process) and routes traffic via path-based proxy.
 
-### External Server (Docker)
-Files: `Dockerfile`, `docker-compose.yml`, `.env.example`, `docker-entrypoint.sh`
+### Fresh Ubuntu VPS (Docker)
+Files: `install.sh`, `docker-update.sh`, `Dockerfile`, `docker-compose.yml`, `docker-entrypoint.sh`
 
+**First-time install (one command):**
 ```bash
-# 1. Copy and fill in environment variables
-cp .env.example .env
+# From inside the cloned repo:
+sudo bash install.sh
 
-# 2. Build and start
-docker compose up -d --build
+# Or as a curl one-liner (public repo):
+curl -fsSL https://raw.githubusercontent.com/you/repo/main/install.sh | sudo bash
+```
+`install.sh` installs Docker Engine, generates a secure `.env`, builds containers, and waits for the health check.
+
+**Update from git:**
+```bash
+sudo bash docker-update.sh
 ```
 
-- The multi-stage Dockerfile builds frontend + API and bundles them into a single Node.js process
-- `docker-entrypoint.sh` waits for Postgres, applies DB migrations once, then starts the server
-- App is served on port 8080 (configurable via `PORT` in `.env`)
-- Migrations tracked in `_ares_migrations` table — safe to restart without re-applying
-- SQL migration: `lib/db/drizzle/0000_military_molten_man.sql` (all 13 tables)
+**Key files:**
+- `Dockerfile` — multi-stage build: installs deps, builds frontend + API, produces a lean Alpine image
+- `docker-compose.yml` — orchestrates `app` + `db` (postgres:16) with healthchecks on both
+- `docker-entrypoint.sh` — waits for Postgres, applies DB migrations once (tracked in `_ares_migrations`), starts server
+- `lib/db/drizzle/0000_military_molten_man.sql` — complete schema for all 13 tables
+- `.env.example` — template for required environment variables
