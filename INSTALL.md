@@ -4,15 +4,17 @@
 
 1. [Prerequisites](#prerequisites)
 2. [Quick Install — Ubuntu / Debian](#quick-install--ubuntu--debian)
-3. [Quick Install — AlmaLinux / Rocky / RHEL](#quick-install--almalinux--rocky--rhel)
-4. [Quick Install — cPanel on AlmaLinux 9](#quick-install--cpanel-on-almalinux-9)
-5. [Installing alongside a Control Panel (CWP, Plesk, Webmin)](#installing-alongside-a-control-panel)
-6. [Setting up a Reverse Proxy in CWP](#setting-up-a-reverse-proxy-in-cwp)
-7. [Setting up a Reverse Proxy in cPanel / WHM](#setting-up-a-reverse-proxy-in-cpanel--whm)
-8. [Enabling HTTPS](#enabling-https)
-9. [Updating A.R.E.S.](#updating-ares)
-10. [Useful Commands](#useful-commands)
-11. [Troubleshooting](#troubleshooting)
+3. [Quick Install — AlmaLinux / RHEL](#quick-install--almalinux--rhel)
+4. [Quick Install — Rocky Linux 9](#quick-install--rocky-linux-9)
+5. [Quick Install — cPanel on AlmaLinux 9](#quick-install--cpanel-on-almalinux-9)
+6. [Installing alongside a Control Panel (CWP, Plesk, Webmin)](#installing-alongside-a-control-panel)
+7. [Setting up a Reverse Proxy in CWP](#setting-up-a-reverse-proxy-in-cwp)
+8. [Setting up a Reverse Proxy in cPanel / WHM](#setting-up-a-reverse-proxy-in-cpanel--whm)
+9. [Publishing — Going Live at a Domain](#publishing--going-live-at-a-domain)
+10. [Enabling HTTPS](#enabling-https)
+11. [Updating A.R.E.S.](#updating-ares)
+12. [Useful Commands](#useful-commands)
+13. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -45,7 +47,7 @@ The installer will install Docker, generate a secure database password, build an
 
 ---
 
-## Quick Install — AlmaLinux / Rocky / RHEL
+## Quick Install — AlmaLinux / RHEL
 
 ```bash
 cd /path/to/project
@@ -54,7 +56,44 @@ sudo bash install-almalinux.sh
 
 Uses `dnf`, adds the Docker CE CentOS repository, and automatically opens the app port in `firewalld`.
 
-Compatible with: AlmaLinux 8/9, Rocky Linux 8/9, RHEL 8/9, CentOS Stream 9, Oracle Linux 8/9.
+Compatible with: AlmaLinux 8/9, RHEL 8/9, CentOS Stream 9, Oracle Linux 8/9.
+
+---
+
+## Quick Install — Rocky Linux 9
+
+Rocky Linux 9 is a certified RHEL-compatible rebuild. The dedicated installer includes extras compared to the generic AlmaLinux script:
+
+- **EPEL repository** — installed upfront so all tooling resolves correctly
+- **SELinux pre-configuration** — enables `httpd_can_network_connect` automatically so any Nginx or Apache reverse proxy can reach Docker containers without a 502 error
+- **HTTP/HTTPS firewall rules** — opens ports 80 and 443 in firewalld alongside the app port so a reverse proxy works out of the box
+
+```bash
+cd /path/to/project
+sudo bash install-rocky.sh
+```
+
+Compatible with Rocky Linux 8 and 9. Also works on AlmaLinux, RHEL, and Oracle Linux.
+
+### Changing the default port (Rocky)
+
+```bash
+export PORT=3000
+sudo bash install-rocky.sh
+```
+
+Or pre-create `.env` (the installer skips generation if it already exists):
+
+```bash
+cat > .env <<EOF
+POSTGRES_PASSWORD=$(openssl rand -hex 32)
+PORT=3000
+GIT_REPO=
+GIT_BRANCH=main
+EOF
+chmod 600 .env
+sudo bash install-rocky.sh
+```
 
 ---
 
@@ -329,6 +368,144 @@ csf -r
 Or in WHM → **ConfigServer Security & Firewall** → **Firewall Configuration** → find **TCP_IN** → append `,7000` → **Change** → **Restart csf+lfd**.
 
 > **Note:** Port 7000 only needs to be open if you are accessing A.R.E.S. directly by IP+port. If you use a reverse proxy (recommended), keep port 7000 blocked from the internet — only the local Nginx/Apache needs to reach it.
+
+---
+
+## Publishing — Going Live at a Domain
+
+After the installer confirms A.R.E.S. is healthy, follow these steps to make it reachable at `https://ares.yourdomain.com` instead of a raw IP and port.
+
+### Step 1 — Point your domain to the server
+
+Log into your domain registrar (Namecheap, GoDaddy, Cloudflare, etc.) and add an **A record**:
+
+| Host | Type | Value | TTL |
+|------|------|-------|-----|
+| `ares` | A | `YOUR_SERVER_IP` | 300 |
+
+This makes `ares.yourdomain.com` resolve to your server's IP. DNS propagation typically takes 5–15 minutes, occasionally up to an hour.
+
+Check it has propagated:
+```bash
+dig +short ares.yourdomain.com
+# Should return your server IP
+```
+
+### Step 2 — Set up a reverse proxy
+
+A reverse proxy sits on ports 80/443 and forwards traffic to A.R.E.S. running on its internal port. Choose the guide that matches your setup:
+
+| Server setup | Guide |
+|---|---|
+| No control panel (bare VPS) | [CWP Nginx section](#setting-up-a-reverse-proxy-in-cwp) — use "Manual Nginx config" |
+| CWP | [CWP reverse proxy section](#setting-up-a-reverse-proxy-in-cwp) |
+| cPanel / WHM | [cPanel reverse proxy section](#setting-up-a-reverse-proxy-in-cpanel--whm) |
+
+**Quick setup for a bare Rocky Linux / AlmaLinux VPS (no control panel):**
+
+```bash
+dnf install -y nginx
+systemctl enable --now nginx
+
+cat > /etc/nginx/conf.d/ares.conf <<'NGINX'
+server {
+    listen 80;
+    server_name ares.yourdomain.com;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade     $http_upgrade;
+        proxy_set_header   Connection  'upgrade';
+        proxy_set_header   Host        $host;
+        proxy_set_header   X-Real-IP   $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+NGINX
+
+nginx -t && systemctl reload nginx
+```
+
+Replace `8080` with the port in your `.env` if you changed it.
+
+**Quick setup for a bare Ubuntu / Debian VPS:**
+
+```bash
+apt install -y nginx
+
+cat > /etc/nginx/sites-available/ares <<'NGINX'
+server {
+    listen 80;
+    server_name ares.yourdomain.com;
+
+    location / {
+        proxy_pass         http://127.0.0.1:8080;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade     $http_upgrade;
+        proxy_set_header   Connection  'upgrade';
+        proxy_set_header   Host        $host;
+        proxy_set_header   X-Real-IP   $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_cache_bypass $http_upgrade;
+    }
+}
+NGINX
+
+ln -sf /etc/nginx/sites-available/ares /etc/nginx/sites-enabled/ares
+nginx -t && systemctl reload nginx
+```
+
+### Step 3 — Issue a free SSL certificate
+
+Once your domain is resolving correctly and Nginx is serving port 80, issue a certificate with Certbot.
+
+**Rocky Linux / AlmaLinux:**
+```bash
+dnf install -y certbot python3-certbot-nginx
+certbot --nginx -d ares.yourdomain.com
+```
+
+**Ubuntu / Debian:**
+```bash
+apt install -y certbot python3-certbot-nginx
+certbot --nginx -d ares.yourdomain.com
+```
+
+Certbot automatically edits the Nginx config to redirect HTTP → HTTPS and reloads Nginx. Certificates auto-renew via a systemd timer or cron job installed by Certbot.
+
+For cPanel, use AutoSSL instead — see [Enabling HTTPS → cPanel AutoSSL](#enabling-https).
+
+### Step 4 — Tell A.R.E.S. it is behind HTTPS
+
+Open `/opt/ares/.env` and set the public URL so session cookies and API links work correctly:
+
+```bash
+nano /opt/ares/.env
+```
+
+Add or update:
+```
+PUBLIC_URL=https://ares.yourdomain.com
+NODE_ENV=production
+```
+
+Restart the containers to pick up the change:
+```bash
+docker compose -f /opt/ares/docker-compose.yml up -d
+```
+
+### Step 5 — Verify end-to-end
+
+```bash
+curl -I https://ares.yourdomain.com/api/healthz
+# Expected: HTTP/2 200
+```
+
+Open `https://ares.yourdomain.com` in your browser and log in with `admin@admin.local` / `Password%1`. **Change the admin password immediately.**
 
 ---
 
