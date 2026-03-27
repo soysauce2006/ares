@@ -688,6 +688,35 @@ Then run `csf -r`.
 
 ---
 
+### `No chain/target/match by that name` / DOCKER-FORWARD error
+
+**Full error:** `Failed to Setup IP tables: Unable to enable ACCEPT OUTGOING rule: iptables --wait -t filter -A DOCKER-FORWARD ... iptables: No chain/target/match by that name.`
+
+**Cause:** CSF ran `csf -r` (firewall reload) and flushed all iptables chains, including Docker's. Docker is still running but its chains no longer exist. This happens after any CSF restart — on boot, after config changes, or manually.
+
+**Immediate fix:**
+```bash
+systemctl restart docker
+```
+
+**Permanent fix — add a csfpost.sh hook so Docker auto-recovers after every CSF reload:**
+
+```bash
+cat >> /etc/csf/csfpost.sh <<'HOOK'
+
+# Restart Docker after CSF reload so its iptables chains are recreated
+if systemctl is-active --quiet docker; then
+  sleep 2
+  systemctl restart docker
+fi
+HOOK
+chmod +x /etc/csf/csfpost.sh
+```
+
+The `install-cpanel.sh` script installs this hook automatically. If you set up Docker manually, add it yourself using the commands above.
+
+---
+
 ### CWP blocks connections to Docker containers
 
 If Nginx can't reach `127.0.0.1:3000` via the reverse proxy:

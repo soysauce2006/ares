@@ -116,10 +116,32 @@ print('Docker daemon.json updated:', json.dumps(cfg))
 PYEOF
 info "Docker daemon: iptables restored, DNS=8.8.8.8/1.1.1.1"
 
-# Restart CSF first (so its chains exist), then Docker (so it inserts into them)
+# ── csfpost.sh hook: restart Docker after every CSF reload ────────────────────
+# When CSF runs "csf -r" it flushes all iptables rules and chains, including
+# Docker's chains (DOCKER, DOCKER-USER, DOCKER-FORWARD).  Docker then fails
+# with "No chain/target/match by that name" when starting containers.
+# The fix: restart Docker after every CSF reload via csfpost.sh.
+CSFPOST=/etc/csf/csfpost.sh
+MARKER='# ARES: restart Docker after CSF reload'
+if command -v csf &>/dev/null && ! grep -qF "$MARKER" "$CSFPOST" 2>/dev/null; then
+  cat >> "$CSFPOST" <<'HOOK'
+
+# ARES: restart Docker after CSF reload
+# CSF flushes iptables on every csf -r, destroying Docker's iptables chains.
+# Restarting Docker recreates them so containers start cleanly.
+if systemctl is-active --quiet docker; then
+  sleep 2
+  systemctl restart docker
+fi
+HOOK
+  chmod +x "$CSFPOST"
+  info "csfpost.sh: Docker restart hook installed"
+fi
+
+# Restart CSF first (so its rules exist), then Docker (so it creates its chains)
 if command -v csf &>/dev/null; then
   csf -r &>/dev/null || true
-  sleep 2
+  sleep 3
 fi
 systemctl restart docker
 sleep 3
