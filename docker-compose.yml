@@ -2,8 +2,8 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:5432:5432"
+    network_mode: "host"
+    command: postgres -c listen_addresses=127.0.0.1
     environment:
       POSTGRES_DB: ares
       POSTGRES_USER: ares
@@ -11,7 +11,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ares -d ares"]
+      test: ["CMD-SHELL", "pg_isready -U ares -d ares -h 127.0.0.1"]
       interval: 10s
       timeout: 5s
       retries: 5
