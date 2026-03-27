@@ -29,5 +29,17 @@ else
   echo "[A.R.E.S.] Migration already applied — skipping."
 fi
 
+echo "[A.R.E.S.] Seeding default admin if no users exist..."
+psql "$DATABASE_URL" <<'SQL'
+INSERT INTO users (username, email, password_hash, role, must_change_password)
+SELECT
+  'Admin',
+  'admin@admin.local',
+  '$2b$12$lc7EovZUpV5VawMBr8LRW.n2lEpQ9.64m5b4TwyWz.i7cHWGBBrCG',
+  'admin',
+  true
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
+SQL
+
 echo "[A.R.E.S.] Starting server..."
 exec node dist/index.cjs
