@@ -72,27 +72,36 @@ else
   dnf install -y docker-ce docker-ce-cli containerd.io \
     docker-buildx-plugin docker-compose-plugin
 
-  # ── cPanel / Docker iptables co-existence ─────────────────────────────────
-  # cPanel uses CSF which also manages iptables. Letting Docker and CSF both
-  # manage iptables simultaneously can cause network disruption.
-  # We tell Docker to skip iptables and let CSF stay in full control.
+  # ── cPanel / Docker co-existence ──────────────────────────────────────────
+  # CSF manages iptables — tell Docker to leave them alone.
+  # Explicit DNS is required because iptables=false breaks bridge DNS forwarding,
+  # which causes EAI_AGAIN errors during docker build.
   mkdir -p /etc/docker
-  if [ ! -f /etc/docker/daemon.json ]; then
-    cat > /etc/docker/daemon.json <<'DAEMON'
-{
-  "iptables": false,
-  "ip-forward": true
-}
-DAEMON
-    info "Docker daemon configured: iptables management handed to CSF"
-  else
-    warn "/etc/docker/daemon.json already exists — not overwriting."
-    warn "Ensure '\"iptables\": false' is set if CSF is active on this server."
-  fi
+  python3 - <<'PYEOF'
+import json, os
+path = '/etc/docker/daemon.json'
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except (FileNotFoundError, ValueError):
+    cfg = {}
+cfg['iptables']   = False
+cfg['ip-forward'] = True
+cfg.setdefault('dns', ['8.8.8.8', '1.1.1.1'])
+with open(path, 'w') as f:
+    json.dump(cfg, f, indent=2)
+print('Docker daemon: iptables=false, ip-forward=true, dns=8.8.8.8/1.1.1.1')
+PYEOF
+  info "Docker daemon configured for cPanel/CSF co-existence"
 
   systemctl enable --now docker
   success "Docker installed: $(docker --version)"
 fi
+
+# ── Restart Docker to pick up daemon.json changes ─────────────────────────────
+# Required whether Docker was just installed or was already present.
+systemctl restart docker
+sleep 2
 
 # ── 2. Get the source code ────────────────────────────────────────────────────
 info "Step 2/6 — Setting up source code..."

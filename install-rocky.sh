@@ -93,6 +93,30 @@ else
   success "Docker installed: $(docker --version)"
 fi
 
+# ── Configure Docker daemon DNS ───────────────────────────────────────────────
+# Docker build containers resolve DNS through the daemon config.
+# Without explicit DNS, builds fail with EAI_AGAIN on servers where iptables
+# forwarding is restricted (cPanel/CSF, some VPS firewall policies).
+python3 - <<'PYEOF'
+import json, os
+path = '/etc/docker/daemon.json'
+try:
+    with open(path) as f:
+        cfg = json.load(f)
+except (FileNotFoundError, ValueError):
+    cfg = {}
+if 'dns' not in cfg:
+    cfg['dns'] = ['8.8.8.8', '1.1.1.1']
+    os.makedirs('/etc/docker', exist_ok=True)
+    with open(path, 'w') as f:
+        json.dump(cfg, f, indent=2)
+    print('Docker daemon: DNS set to 8.8.8.8, 1.1.1.1')
+else:
+    print('Docker daemon: DNS already configured')
+PYEOF
+systemctl restart docker
+sleep 2
+
 # ── 3. Get the source code ────────────────────────────────────────────────────
 info "Step 3/6 — Setting up source code..."
 
