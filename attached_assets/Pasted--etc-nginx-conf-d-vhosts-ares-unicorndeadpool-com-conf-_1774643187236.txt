@@ -1,0 +1,187 @@
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf
+/etc/nginx/conf.d/vhosts/unicorndeadpool.com.conf
+/etc/nginx/conf.d/vhosts/unicorndeadpool.com.ssl.conf
+/etc/nginx/conf.d/74.208.37.130.conf
+/etc/nginx/conf.d/hostname.conf
+/etc/nginx/conf.d/hostname-ssl.conf
+/etc/nginx/conf.d/ares_proxy.conf
+/etc/nginx/nginx.conf
+        include mime.types;
+        include /etc/nginx/cloudflare.inc;
+        include /etc/nginx/conf.d/*.conf;
+# configuration file /etc/nginx/conf.d/74.208.37.130.conf:
+                        include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+# configuration file /etc/nginx/conf.d/ares_proxy.conf:
+# configuration file /etc/nginx/conf.d/hostname-ssl.conf:
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+                include proxy.inc;
+    server_name ares.unicorndeadpool.com;
+
+    # Pass everything through to the Docker container
+    location / {
+        proxy_pass         http://127.0.0.1:7000;
+        proxy_http_version 1.1;
+--
+# configuration file /etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:
+server {
+        listen 74.208.37.130:80;
+        server_name ares.unicorndeadpool.com  www.ares.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+
+        location / {
+                location ~.*\.(3gp|gif|jpg|jpeg|png|ico|wmv|avi|asf|asx|mpg|mpeg|mp4|pls|mp3|mid|wav|swf|flv|html|htm|txt|js|css|exe|zip|tar|rar|gz|tgz|bz2|uha|7z|doc|docx|xls|xlsx|pdf|iso|woff|ttf|svg|eot|sh|webp)$ {
+                        root /home/unicorn/public_html;
+                        expires max;
+--
+        server_name webmail.ares.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  http://127.0.0.1:2095;
+                include proxy.inc;
+        }
+--
+        server_name mail.ares.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  http://127.0.0.1:2095;
+                include proxy.inc;
+        }
+--
+        server_name cpanel.ares.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  https://127.0.0.1:2083;
+                include proxy.inc;
+        }
+--
+# configuration file /etc/nginx/conf.d/vhosts/unicorndeadpool.com.conf:
+server {
+        listen 74.208.37.130:80;
+        server_name unicorndeadpool.com  www.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        location / {
+                location ~.*\.(3gp|gif|jpg|jpeg|png|ico|wmv|avi|asf|asx|mpg|mpeg|mp4|pls|mp3|mid|wav|swf|flv|html|htm|txt|js|css|exe|zip|tar|rar|gz|tgz|bz2|uha|7z|doc|docx|xls|xlsx|pdf|iso|woff|ttf|svg|eot|sh|webp)$ {
+                        root /home/unicorn/public_html;
+                        expires max;
+--
+        server_name webmail.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  http://127.0.0.1:2095;
+                include proxy.inc;
+        }
+--
+        server_name mail.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  http://127.0.0.1:2095;
+                include proxy.inc;
+        }
+--
+        server_name cpanel.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        location / {
+                proxy_pass  https://127.0.0.1:2083;
+                include proxy.inc;
+        }
+--
+# configuration file /etc/nginx/conf.d/vhosts/unicorndeadpool.com.ssl.conf:
+server {
+        listen 74.208.37.130:443 ssl ;
+        server_name unicorndeadpool.com  www.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        ssl_certificate      /etc/pki/tls/certs/unicorndeadpool.com.bundle;
+        ssl_certificate_key  /etc/pki/tls/private/unicorndeadpool.com.key;
+        ssl_protocols TLSv1.2;
+        ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH+aRSA!RC4:EECDH:!RC4:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
+        ssl_prefer_server_ciphers   on;
+
+        ssl_session_cache   shared:SSL:10m;
+--
+        server_name webmail.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        ssl_certificate      /etc/pki/tls/certs/unicorndeadpool.com.bundle;
+        ssl_certificate_key  /etc/pki/tls/private/unicorndeadpool.com.key;
+        ssl_protocols TLSv1.2;
+        ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH+aRSA!RC4:EECDH:!RC4:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
+        ssl_prefer_server_ciphers   on;
+
+        ssl_session_cache   shared:SSL:10m;
+--
+        server_name mail.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        ssl_certificate      /etc/pki/tls/certs/unicorndeadpool.com.bundle;
+        ssl_certificate_key  /etc/pki/tls/private/unicorndeadpool.com.key;
+        ssl_protocols TLSv1.2;
+        ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH+aRSA!RC4:EECDH:!RC4:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
+        ssl_prefer_server_ciphers   on;
+
+        ssl_session_cache   shared:SSL:10m;
+--
+        server_name cpanel.unicorndeadpool.com;
+
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.bytes bytes;
+        access_log /usr/local/apache/domlogs/unicorndeadpool.com.log combined;
+        error_log /usr/local/apache/domlogs/unicorndeadpool.com.error.log error;
+
+        ssl_certificate      /etc/pki/tls/certs/unicorndeadpool.com.bundle;
+        ssl_certificate_key  /etc/pki/tls/private/unicorndeadpool.com.key;
+        ssl_protocols TLSv1.2;
+        ssl_ciphers EECDH+ECDSA+AESGCM:EECDH+aRSA+AESGCM:EECDH+ECDSA+SHA384:EECDH+ECDSA+SHA256:EECDH+aRSA+SHA384:EECDH+aRSA+SHA256:EECDH+aRSA!RC4:EECDH:!RC4:!aNULL:!eNULL:!LOW:!3DES:!MD5:!EXP:!PSK:!SRP:!DSS;
+        ssl_prefer_server_ciphers   on;
+
+        ssl_session_cache   shared:SSL:10m;
