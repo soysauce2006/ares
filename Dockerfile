@@ -1,6 +1,7 @@
 FROM node:24-slim AS base
-# Install pnpm directly — avoids corepack network/version issues in Docker builds
-RUN npm install -g pnpm@10.26.1
+# --network=host bypasses Docker's bridge DNS, which breaks on cPanel/CSF servers
+# where "iptables": false is set in daemon.json.  On plain Linux VPS this is a no-op.
+RUN --network=host npm install -g pnpm@10.26.1
 WORKDIR /app
 
 # ── Dependency layer ───────────────────────────────────────────────────────────
@@ -16,7 +17,7 @@ COPY artifacts/roster-app/package.json  artifacts/roster-app/
 COPY artifacts/ares-mobile/package.json artifacts/ares-mobile/
 COPY scripts/package.json           scripts/
 # Frozen install — lockfile matches all package.json files exactly
-RUN pnpm install --frozen-lockfile
+RUN --network=host pnpm install --frozen-lockfile
 
 # ── Build layer ────────────────────────────────────────────────────────────────
 FROM deps AS builder
@@ -47,7 +48,7 @@ RUN pnpm --filter @workspace/api-server deploy --prod --legacy /deploy
 
 # ── Production runner ──────────────────────────────────────────────────────────
 FROM node:24-slim AS runner
-RUN apt-get update -qq && \
+RUN --network=host apt-get update -qq && \
     apt-get install -y --no-install-recommends postgresql-client && \
     rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production

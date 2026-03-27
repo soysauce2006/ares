@@ -183,6 +183,10 @@ fi
 # ── 5. Build and start containers ─────────────────────────────────────────────
 info "Step 5/6 — Building image (this takes a few minutes — full output shown)..."
 
+# DOCKER_BUILDKIT=1 is required for RUN --network=host in the Dockerfile.
+# Docker Compose v2 enables it by default, but we set it explicitly for safety.
+export DOCKER_BUILDKIT=1
+
 docker compose -f "$REPO_DIR/docker-compose.yml" --env-file "$REPO_DIR/.env" \
   build --no-cache
 
