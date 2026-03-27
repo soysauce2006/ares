@@ -72,12 +72,35 @@ else
   dnf install -y docker-ce docker-ce-cli containerd.io \
     docker-buildx-plugin docker-compose-plugin
 
-  # ── cPanel / Docker co-existence ──────────────────────────────────────────
-  # CSF manages iptables — tell Docker to leave them alone.
-  # Explicit DNS is required because iptables=false breaks bridge DNS forwarding,
-  # which causes EAI_AGAIN errors during docker build.
-  mkdir -p /etc/docker
-  python3 - <<'PYEOF'
+  systemctl enable --now docker
+  success "Docker installed: $(docker --version)"
+fi
+
+# ── CSF + Docker co-existence (correct approach) ──────────────────────────────
+# "iptables: false" in daemon.json is the WRONG fix for cPanel/CSF.
+# It stops Docker from setting up NAT, so containers can't reach the internet
+# at all — causing EAI_AGAIN on every package install during docker build.
+#
+# The correct fix is CSF's DOCKER=1 option (available in CSF 14.20+):
+#   - Docker manages its own iptables chains (DOCKER, DOCKER-USER, FORWARD)
+#   - CSF controls INPUT/OUTPUT for the host and adds rules to DOCKER-USER
+#   - Containers get NAT and can reach the internet normally
+#
+if command -v csf &>/dev/null && [ -f /etc/csf/csf.conf ]; then
+  if grep -q '^DOCKER = "0"' /etc/csf/csf.conf; then
+    sed -i 's/^DOCKER = "0"/DOCKER = "1"/' /etc/csf/csf.conf
+    info "CSF: DOCKER=1 enabled — Docker and CSF iptables will coexist"
+  else
+    info "CSF: DOCKER setting already configured (not changed)"
+  fi
+fi
+
+# ── Docker daemon: explicit DNS + clean iptables ──────────────────────────────
+# Remove any lingering "iptables": false that may have been set by a previous
+# install attempt. Set explicit DNS so build containers resolve hostnames even
+# on networks with restrictive resolv.conf configurations.
+mkdir -p /etc/docker
+python3 - <<'PYEOF'
 import json, os
 path = '/etc/docker/daemon.json'
 try:
@@ -85,23 +108,21 @@ try:
         cfg = json.load(f)
 except (FileNotFoundError, ValueError):
     cfg = {}
-cfg['iptables']   = False
-cfg['ip-forward'] = True
-cfg.setdefault('dns', ['8.8.8.8', '1.1.1.1'])
+cfg.pop('iptables', None)          # remove — Docker must manage iptables itself
+cfg['dns'] = ['8.8.8.8', '1.1.1.1']
 with open(path, 'w') as f:
     json.dump(cfg, f, indent=2)
-print('Docker daemon: iptables=false, ip-forward=true, dns=8.8.8.8/1.1.1.1')
+print('Docker daemon.json updated:', json.dumps(cfg))
 PYEOF
-  info "Docker daemon configured for cPanel/CSF co-existence"
+info "Docker daemon: iptables restored, DNS=8.8.8.8/1.1.1.1"
 
-  systemctl enable --now docker
-  success "Docker installed: $(docker --version)"
+# Restart CSF first (so its chains exist), then Docker (so it inserts into them)
+if command -v csf &>/dev/null; then
+  csf -r &>/dev/null || true
+  sleep 2
 fi
-
-# ── Restart Docker to pick up daemon.json changes ─────────────────────────────
-# Required whether Docker was just installed or was already present.
 systemctl restart docker
-sleep 2
+sleep 3
 
 # ── 2. Get the source code ────────────────────────────────────────────────────
 info "Step 2/6 — Setting up source code..."

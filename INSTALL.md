@@ -101,7 +101,7 @@ sudo bash install-rocky.sh
 
 cPanel manages its own Apache, Nginx (optional), SSL, and firewall (CSF). Running Docker alongside cPanel requires two extra considerations that this dedicated script handles automatically:
 
-1. **iptables co-existence** — cPanel's CSF firewall and Docker both try to manage iptables. The script tells Docker to leave iptables alone (`"iptables": false` in `/etc/docker/daemon.json`) so CSF stays in full control.
+1. **CSF + Docker coexistence** — The script enables `DOCKER = "1"` in CSF's config, which is the correct way for CSF and Docker to share iptables. Docker manages its own chains (NAT, FORWARD), CSF manages host INPUT/OUTPUT. This lets build containers reach the internet during `docker build`. The old `"iptables": false` approach is intentionally avoided — it breaks container networking and causes `EAI_AGAIN` errors on every package install.
 2. **Port selection** — cPanel occupies ports 80, 443, 2082, 2083, 2086, 2087, 2095, and 2096. The script defaults A.R.E.S. to port **7000** to avoid all conflicts.
 
 ```bash
@@ -631,21 +631,51 @@ setsebool -P httpd_can_network_connect 1
 
 ---
 
-### Docker containers can't reach the internet (cPanel + CSF)
+### `EAI_AGAIN` / Docker build can't reach the internet (cPanel + CSF)
 
-When `"iptables": false` is set in Docker's daemon config (the cPanel installer does this), Docker containers use the host network stack but CSF must allow forwarding.
+This happens when `"iptables": false` is present in `/etc/docker/daemon.json`. That setting disables Docker's NAT rules, so build containers cannot route packets outside the bridge — even DNS fails because UDP packets to `8.8.8.8:53` can't leave the host.
 
-In `/etc/csf/csf.conf`, ensure:
-```
-DOCKER = "1"
-```
+**Run this one-time fix on the server before rebuilding:**
 
-Then restart CSF:
 ```bash
+# 1. Tell CSF to coexist with Docker (DOCKER=1 is the correct approach)
+grep -q '^DOCKER = "0"' /etc/csf/csf.conf && \
+  sed -i 's/^DOCKER = "0"/DOCKER = "1"/' /etc/csf/csf.conf
+
+# 2. Remove "iptables": false from daemon.json and add explicit DNS
+python3 - <<'EOF'
+import json
+path = '/etc/docker/daemon.json'
+try:
+    with open(path) as f: cfg = json.load(f)
+except: cfg = {}
+cfg.pop('iptables', None)
+cfg['dns'] = ['8.8.8.8', '1.1.1.1']
+with open(path, 'w') as f: json.dump(cfg, f, indent=2)
+print('daemon.json:', json.dumps(cfg, indent=2))
+EOF
+
+# 3. Restart CSF first, then Docker
 csf -r
+sleep 2
+systemctl restart docker
+sleep 3
+
+# 4. Verify container networking works
+docker run --rm alpine sh -c "wget -qO- https://api.ipify.org && echo"
+
+# 5. Rebuild
+docker compose build --no-cache
 ```
 
-If the `DOCKER` option is missing from your CSF version, add these lines to `/etc/csf/csfpost.sh`:
+**Why `DOCKER = "1"` and not `"iptables": false`:**
+
+| Setting | Effect |
+|---|---|
+| `"iptables": false` | Docker skips NAT setup → containers have no internet → `EAI_AGAIN` on every `npm install` inside a build |
+| `DOCKER = "1"` in CSF | Docker manages its own chains (NAT, FORWARD, DOCKER-USER); CSF manages host INPUT/OUTPUT. Both coexist correctly |
+
+If the `DOCKER` option is missing from your CSF version (pre-14.20), add these lines to `/etc/csf/csfpost.sh` instead:
 
 ```bash
 DOCKER_INT="docker0"
@@ -654,10 +684,7 @@ iptables -A FORWARD -o $DOCKER_INT -j ACCEPT
 iptables -t nat -A POSTROUTING -s 172.17.0.0/16 ! -o $DOCKER_INT -j MASQUERADE
 ```
 
-Then run:
-```bash
-csf -r
-```
+Then run `csf -r`.
 
 ---
 
