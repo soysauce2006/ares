@@ -1,6 +1,6 @@
 FROM node:24-slim AS base
-# Pin pnpm to the exact version used to generate pnpm-lock.yaml
-RUN corepack enable && corepack prepare pnpm@10.26.1 --activate
+# Install pnpm directly — avoids corepack network/version issues in Docker builds
+RUN npm install -g pnpm@10.26.1
 WORKDIR /app
 
 # ── Dependency layer ───────────────────────────────────────────────────────────
