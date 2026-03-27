@@ -14,7 +14,8 @@
 10. [Enabling HTTPS](#enabling-https)
 11. [Updating A.R.E.S.](#updating-ares)
 12. [Useful Commands](#useful-commands)
-13. [Troubleshooting](#troubleshooting)
+13. [Mobile App — Installation & Build](#mobile-app--installation--build)
+14. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -573,6 +574,253 @@ docker compose -f /opt/ares/docker-compose.yml up -d
 # Shell inside the app container
 docker compose -f /opt/ares/docker-compose.yml exec app sh
 ```
+
+---
+
+## Mobile App — Installation & Build
+
+The A.R.E.S. mobile companion is built with **Expo** (React Native) and connects to the same API server you deployed above. You can run it on Android and iOS devices.
+
+### Prerequisites
+
+| Tool | Version | Install |
+|------|---------|---------|
+| Node.js | 18 or higher | https://nodejs.org |
+| pnpm | 9 or higher | `npm install -g pnpm` |
+| Expo CLI | latest | `npm install -g expo-cli` |
+| EAS CLI (builds) | latest | `npm install -g eas-cli` |
+| Android Studio (local Android builds) | latest | https://developer.android.com/studio |
+| Xcode (local iOS builds — Mac only) | 15+ | Mac App Store |
+
+You do **not** need Android Studio or Xcode for cloud builds via EAS.
+
+---
+
+### Step 1 — Install dependencies
+
+From the project root (the same directory that contains `docker-compose.yml`):
+
+```bash
+pnpm install
+```
+
+---
+
+### Step 2 — Configure the API server URL
+
+The mobile app connects to your A.R.E.S. server via the `EXPO_PUBLIC_DOMAIN` environment variable. Create a file called `.env.local` inside `artifacts/ares-mobile/`:
+
+```bash
+cat > artifacts/ares-mobile/.env.local <<EOF
+EXPO_PUBLIC_DOMAIN=ares.yourdomain.com
+EOF
+```
+
+Replace `ares.yourdomain.com` with your actual domain (no `https://` prefix — the app adds it automatically). For local testing against the dev server use `localhost:8080`.
+
+> Your API server **must** be running and reachable from the device. The app sends all requests to `https://<EXPO_PUBLIC_DOMAIN>/api/...`.
+
+---
+
+### Step 3 — Run in development (Expo Go)
+
+The fastest way to test on a real device with no compilation required:
+
+1. Install **Expo Go** on your phone:
+   - Android: [Google Play](https://play.google.com/store/apps/details?id=host.exp.exponent)
+   - iOS: [App Store](https://apps.apple.com/app/expo-go/id982107779)
+
+2. Start the development server:
+
+```bash
+pnpm --filter @workspace/ares-mobile run dev
+```
+
+3. Scan the QR code that appears in the terminal with your phone's camera (iOS) or with the Expo Go app (Android). The app loads over your local network.
+
+> Both your computer and phone must be on the same Wi-Fi network for LAN mode to work.
+
+---
+
+### Step 4A — Build for Android (EAS Cloud — recommended)
+
+EAS Build compiles your app in the cloud. No Android Studio or local SDK required.
+
+**One-time setup:**
+
+```bash
+# Log in to your Expo account (free at expo.dev)
+eas login
+
+# Configure the project for EAS (run from artifacts/ares-mobile/)
+cd artifacts/ares-mobile
+eas build:configure
+```
+
+This creates `eas.json`. Edit it to set your desired profiles:
+
+```json
+{
+  "cli": { "version": ">= 10.0.0" },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "android": { "buildType": "apk" },
+      "distribution": "internal"
+    },
+    "production": {
+      "android": { "buildType": "app-bundle" }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
+```
+
+**Build an APK for direct installation (sideloading):**
+
+```bash
+cd artifacts/ares-mobile
+eas build --platform android --profile preview
+```
+
+EAS uploads the source, compiles it in the cloud, and gives you a download link for the `.apk` file. Install it on any Android device by transferring the file and opening it (enable "Install from unknown sources" in Android Settings → Security).
+
+**Build a production AAB for Google Play Store:**
+
+```bash
+cd artifacts/ares-mobile
+eas build --platform android --profile production
+```
+
+**Build for iOS (requires Apple Developer account, $99/year):**
+
+```bash
+cd artifacts/ares-mobile
+eas build --platform ios --profile production
+```
+
+EAS handles provisioning profiles and signing certificates automatically.
+
+---
+
+### Step 4B — Build for Android locally (no EAS account)
+
+Requires **Android Studio** with the Android SDK installed.
+
+```bash
+# 1. Generate the native Android project
+cd artifacts/ares-mobile
+npx expo prebuild --platform android --clean
+
+# 2. Build a debug APK
+cd android
+./gradlew assembleDebug
+
+# The APK is at:
+# android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+**Build a release APK** (requires a signing keystore):
+
+```bash
+# Generate a keystore (one-time, keep this file safe)
+keytool -genkey -v \
+  -keystore ares-release-key.jks \
+  -alias ares \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000
+
+# Build release APK
+cd android
+./gradlew assembleRelease \
+  -Pandroid.injected.signing.store.file=../../ares-release-key.jks \
+  -Pandroid.injected.signing.store.password=YOUR_STORE_PASSWORD \
+  -Pandroid.injected.signing.key.alias=ares \
+  -Pandroid.injected.signing.key.password=YOUR_KEY_PASSWORD
+
+# APK is at:
+# android/app/build/outputs/apk/release/app-release.apk
+```
+
+---
+
+### Step 4C — Build for iOS locally (Mac only)
+
+Requires **Xcode 15+** and an Apple Developer account.
+
+```bash
+# 1. Generate the native iOS project
+cd artifacts/ares-mobile
+npx expo prebuild --platform ios --clean
+
+# 2. Open in Xcode
+open ios/ARESmobile.xcworkspace
+```
+
+In Xcode:
+1. Select your development team under **Signing & Capabilities**
+2. Connect your iPhone or select a simulator
+3. Press **Run** (▶) to build and install
+
+For a distribution build (App Store or TestFlight):
+- Product → Archive → Distribute App
+
+---
+
+### Distributing the APK without an app store
+
+For internal/field deployment where sideloading is acceptable:
+
+1. Build a release APK (Step 4A preview profile or Step 4B)
+2. Host the `.apk` file on a web server or file share
+3. On each Android device:
+   - Settings → Security → enable **Install unknown apps** for your browser
+   - Download and open the APK
+   - Tap **Install**
+
+> Android 8+ requires enabling "Install unknown apps" per-app (not globally). Users will see a one-time prompt.
+
+---
+
+### Environment variables reference
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `EXPO_PUBLIC_DOMAIN` | Yes | Domain of your A.R.E.S. server, e.g. `ares.yourdomain.com` (no protocol) |
+
+Set this in `artifacts/ares-mobile/.env.local` for development, or in your EAS project secrets for cloud builds:
+
+```bash
+# Set secret for EAS builds
+eas secret:create --scope project --name EXPO_PUBLIC_DOMAIN --value ares.yourdomain.com
+```
+
+---
+
+### Troubleshooting — Mobile
+
+**"Network request failed" on device**
+- Ensure `EXPO_PUBLIC_DOMAIN` points to a publicly reachable URL, not `localhost`
+- Confirm the A.R.E.S. server is running and HTTPS is configured
+- Check that your firewall allows the app port (443 via reverse proxy)
+
+**Expo Go shows "Something went wrong"**
+- Run `pnpm --filter @workspace/ares-mobile run dev` and check the terminal for a red error
+- Ensure both device and computer are on the same network in LAN mode
+
+**EAS build fails**
+- Run `eas build --platform android --profile preview --local` to see the full build log locally
+- Confirm all dependencies are installed: `pnpm install`
+
+**iOS build — "No provisioning profile"**
+- Run `eas credentials` and let EAS set up credentials automatically
+- Or manually set your Team ID and Bundle Identifier in `app.json` under `expo.ios.bundleIdentifier`
 
 ---
 
