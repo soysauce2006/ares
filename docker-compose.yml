@@ -2,6 +2,8 @@ services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_DB: ares
       POSTGRES_USER: ares
@@ -17,17 +19,16 @@ services:
   app:
     build: .
     restart: unless-stopped
-    ports:
-      - "${PORT:-8080}:8080"
+    network_mode: "host"
     environment:
       NODE_ENV: production
-      PORT: 8080
-      DATABASE_URL: postgres://ares:${POSTGRES_PASSWORD}@db:5432/ares
+      PORT: ${PORT:-7000}
+      DATABASE_URL: postgres://ares:${POSTGRES_PASSWORD}@127.0.0.1:5432/ares
     depends_on:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/api/healthz || exit 1"]
+      test: ["CMD-SHELL", "node -e \"const h=require('http');h.get('http://localhost:${PORT:-7000}/api/healthz',r=>{process.exit(r.statusCode===200?0:1)}).on('error',()=>process.exit(1))\""]
       interval: 30s
       timeout: 10s
       retries: 3
