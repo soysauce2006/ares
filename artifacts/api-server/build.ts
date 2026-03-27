@@ -6,13 +6,16 @@ import { rm, readFile } from "fs/promises";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times without risking some
-// packages that are not bundle compatible
+// Packages to bundle into the single index.cjs output.
+// Every non-workspace production dep must be listed here — anything NOT listed
+// is marked external and must exist in node_modules at runtime.  Missing entries
+// cause "Cannot find module" crashes in the Docker container.
 const allowlist = [
   "@google/generative-ai",
   "axios",
+  "bcryptjs",
   "connect-pg-simple",
+  "cookie-parser",
   "cors",
   "date-fns",
   "drizzle-orm",
@@ -29,6 +32,8 @@ const allowlist = [
   "passport",
   "passport-local",
   "pg",
+  "qrcode",
+  "speakeasy",
   "stripe",
   "uuid",
   "ws",
