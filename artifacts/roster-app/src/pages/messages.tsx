@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Radio, Send, Globe, MessageSquare, User as UserIcon, Plus, X, Users, Trash2,
-  ChevronDown, ChevronRight, Settings2, UserPlus,
+  ChevronDown, ChevronRight, Settings2, UserPlus, AlertTriangle,
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import {
@@ -130,6 +130,7 @@ export default function Messages() {
   const [manageChannelOpen, setManageChannelOpen] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [deleteChannelOpen, setDeleteChannelOpen] = useState(false);
+  const [clearChatOpen, setClearChatOpen] = useState(false);
   const [clearanceLevels, setClearanceLevels] = useState<ClearanceLevel[]>([]);
   const [ranks, setRanks] = useState<Rank[]>([]);
 
@@ -423,6 +424,42 @@ export default function Messages() {
     }
   };
 
+  const deleteMessage = async (msgId: number) => {
+    try {
+      if (activeThread.type === "channel") {
+        await apiFetch(`/channels/${activeThread.channel.id}/messages/${msgId}`, { method: "DELETE" });
+        setChannelMessages(prev => prev.filter(m => m.id !== msgId));
+      } else {
+        await apiFetch(`/messages/${msgId}`, { method: "DELETE" });
+        setMessages(prev => prev.filter(m => m.id !== msgId));
+      }
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const clearChat = async () => {
+    try {
+      if (activeThread.type === "global") {
+        await apiFetch("/messages/global/clear", { method: "DELETE" });
+        setMessages([]);
+        lastMsgIdRef.current = 0;
+      } else if (activeThread.type === "direct") {
+        await apiFetch(`/messages/direct/${activeThread.user.id}/clear`, { method: "DELETE" });
+        setMessages([]);
+        lastMsgIdRef.current = 0;
+      } else if (activeThread.type === "channel") {
+        await apiFetch(`/channels/${activeThread.channel.id}/messages/clear`, { method: "DELETE" });
+        setChannelMessages([]);
+        lastMsgIdRef.current = 0;
+      }
+      setClearChatOpen(false);
+      toast({ title: "Chat Cleared", description: "All messages removed." });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    }
+  };
+
   const totalUnread = conversations.reduce((s, c) => s + (c.unread ?? 0), 0);
 
   const activeLabel =
@@ -619,6 +656,15 @@ export default function Messages() {
                   <Settings2 className="w-3.5 h-3.5" />
                 </button>
               )}
+              {isAdmin && (
+                <button
+                  onClick={() => setClearChatOpen(true)}
+                  className="ml-1 text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+                  title="Clear all messages"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
             {/* Messages */}
@@ -652,11 +698,12 @@ export default function Messages() {
                         const isMe = msg.senderId === myId;
                         const prevMsg = group.msgs[i - 1];
                         const isSameAuthor = prevMsg?.senderId === msg.senderId;
+                        const canDelete = isAdmin || isMe;
                         return (
                           <div
                             key={msg.id}
                             className={cn(
-                              "flex gap-2",
+                              "flex gap-2 group/msg",
                               isMe ? "justify-end" : "justify-start",
                               isSameAuthor ? "mt-0.5" : "mt-3"
                             )}
@@ -676,13 +723,24 @@ export default function Messages() {
                                   <span className="font-mono text-[9px] text-muted-foreground/50">{formatMsgTime(msg.createdAt)}</span>
                                 </div>
                               )}
-                              <div className={cn(
-                                "px-3 py-2 rounded-lg font-mono text-sm leading-relaxed break-words",
-                                isMe
-                                  ? "bg-primary/20 border border-primary/30 text-foreground rounded-tr-none"
-                                  : "bg-secondary/40 border border-border/30 text-foreground/90 rounded-tl-none"
-                              )}>
-                                {msg.content}
+                              <div className={cn("relative flex items-end gap-1", isMe ? "flex-row-reverse" : "flex-row")}>
+                                <div className={cn(
+                                  "px-3 py-2 rounded-lg font-mono text-sm leading-relaxed break-words",
+                                  isMe
+                                    ? "bg-primary/20 border border-primary/30 text-foreground rounded-tr-none"
+                                    : "bg-secondary/40 border border-border/30 text-foreground/90 rounded-tl-none"
+                                )}>
+                                  {msg.content}
+                                </div>
+                                {canDelete && (
+                                  <button
+                                    onClick={() => deleteMessage(msg.id)}
+                                    className="opacity-0 group-hover/msg:opacity-100 shrink-0 mb-0.5 text-muted-foreground/50 hover:text-destructive transition-all p-0.5 rounded"
+                                    title="Delete message"
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                )}
                               </div>
                               {isSameAuthor && (
                                 <span className={cn("font-mono text-[9px] text-muted-foreground/40 mt-0.5", isMe ? "text-right" : "text-left")}>
@@ -1029,6 +1087,30 @@ export default function Messages() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* ── Clear Chat Confirm ── */}
+      <AlertDialog open={clearChatOpen} onOpenChange={setClearChatOpen}>
+        <AlertDialogContent className="bg-card border-destructive/30">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-display uppercase tracking-widest text-destructive flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Clear All Messages
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-sm text-muted-foreground">
+              Permanently delete <span className="text-foreground font-bold">all messages</span> in{" "}
+              <span className="text-foreground font-bold">{activeLabel}</span>? This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="font-mono text-xs uppercase">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive hover:bg-destructive/80 font-mono text-xs uppercase"
+              onClick={clearChat}
+            >
+              Clear All
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Delete Channel Confirm ── */}
       {activeChannel && (

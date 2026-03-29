@@ -13,6 +13,9 @@ export interface SiteSettings {
   logoImage: string;
   backgroundImage: string;
   faviconImage: string;
+  roleLabelAdmin: string;
+  roleLabelManager: string;
+  roleLabelViewer: string;
 }
 
 const DEFAULTS: SiteSettings = {
@@ -27,7 +30,19 @@ const DEFAULTS: SiteSettings = {
   logoImage: "",
   backgroundImage: "",
   faviconImage: "",
+  roleLabelAdmin: "Admin",
+  roleLabelManager: "Manager",
+  roleLabelViewer: "Viewer",
 };
+
+export function getRoleLabel(role: string, settings: SiteSettings): string {
+  switch (role) {
+    case "admin": return settings.roleLabelAdmin || "Admin";
+    case "manager": return settings.roleLabelManager || "Manager";
+    case "viewer": return settings.roleLabelViewer || "Viewer";
+    default: return role;
+  }
+}
 
 const SettingsContext = createContext<SiteSettings>(DEFAULTS);
 

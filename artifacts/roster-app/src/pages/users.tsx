@@ -27,7 +27,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { useSettings } from "@/contexts/settings-context";
+import { useSettings, getRoleLabel } from "@/contexts/settings-context";
 import { cn } from "@/lib/utils";
 
 const createUserSchema = z.object({
@@ -312,6 +312,7 @@ export default function Users() {
   const [mfaResetUser, setMfaResetUser] = useState<any>(null);
   const [isResettingMfa, setIsResettingMfa] = useState(false);
 
+  const settings = useSettings();
   const { data: currentUser } = useGetCurrentUser();
   const { data: users, isLoading } = useListUsers();
   const { data: clearances } = useListClearances();
@@ -461,7 +462,7 @@ export default function Users() {
                     <TableCell className="font-mono text-sm text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={`font-mono text-[10px] uppercase tracking-widest ${getRoleColor(user.role)}`}>
-                        {user.role}
+                        {getRoleLabel(user.role, settings)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -581,9 +582,9 @@ export default function Users() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-card border-border/50 font-mono text-xs uppercase">
-                      <SelectItem value="admin">Alpha (Admin)</SelectItem>
-                      <SelectItem value="manager">Beta (Manager)</SelectItem>
-                      <SelectItem value="viewer">Gamma (Viewer)</SelectItem>
+                      <SelectItem value="admin">{settings.roleLabelAdmin || "Admin"}</SelectItem>
+                      <SelectItem value="manager">{settings.roleLabelManager || "Manager"}</SelectItem>
+                      <SelectItem value="viewer">{settings.roleLabelViewer || "Viewer"}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage className="font-mono text-xs text-destructive" />
@@ -633,9 +634,9 @@ export default function Users() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="bg-card border-border/50 font-mono text-xs uppercase">
-                      <SelectItem value="admin">Alpha (Admin)</SelectItem>
-                      <SelectItem value="manager">Beta (Manager)</SelectItem>
-                      <SelectItem value="viewer">Gamma (Viewer)</SelectItem>
+                      <SelectItem value="admin">{settings.roleLabelAdmin || "Admin"}</SelectItem>
+                      <SelectItem value="manager">{settings.roleLabelManager || "Manager"}</SelectItem>
+                      <SelectItem value="viewer">{settings.roleLabelViewer || "Viewer"}</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage className="font-mono text-xs text-destructive" />

@@ -20,6 +20,9 @@ const TEXT_DEFAULTS = {
   tier2LabelPlural: "Companies",
   tier3Label: "Squad",
   tier3LabelPlural: "Squads",
+  roleLabelAdmin: "Admin",
+  roleLabelManager: "Manager",
+  roleLabelViewer: "Viewer",
 };
 
 const IMAGE_SLOTS = [
@@ -259,6 +262,29 @@ export default function SettingsPage() {
             </h2>
             {field("siteName", "System Name", "The name shown in the sidebar header.")}
             {field("siteSubtitle", "System Subtitle", "The subtitle shown under the system name.")}
+          </Card>
+
+          <Card className="p-6 border-border/50 bg-card space-y-5">
+            <h2 className="text-sm font-display font-bold uppercase tracking-widest text-primary border-b border-border/30 pb-3">
+              Role Labels
+            </h2>
+            <p className="text-xs font-mono text-muted-foreground/70">
+              Customize the display names for each access role. The underlying permissions remain the same.
+            </p>
+            <div className="space-y-4">
+              <div className="bg-red-500/5 border border-red-500/20 rounded-sm p-3">
+                <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest mb-2">Admin Role — Full system access</p>
+                {field("roleLabelAdmin", "Display Name")}
+              </div>
+              <div className="bg-amber-500/5 border border-amber-500/20 rounded-sm p-3">
+                <p className="text-[10px] font-mono text-amber-400 uppercase tracking-widest mb-2">Manager Role — Manage roster &amp; org</p>
+                {field("roleLabelManager", "Display Name")}
+              </div>
+              <div className="bg-green-500/5 border border-green-500/20 rounded-sm p-3">
+                <p className="text-[10px] font-mono text-green-400 uppercase tracking-widest mb-2">Viewer Role — Read-only access</p>
+                {field("roleLabelViewer", "Display Name")}
+              </div>
+            </div>
           </Card>
 
           <Card className="p-6 border-border/50 bg-card space-y-5">

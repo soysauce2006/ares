@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, messagesTable, usersTable } from "@workspace/db";
 import { eq, or, and, isNull, inArray, desc, gt, lt, sql } from "drizzle-orm";
-import { requireAuth } from "../lib/auth.js";
+import { requireAuth, requireAdmin } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
@@ -196,6 +196,53 @@ router.get("/users", requireAuth, async (req, res) => {
     .where(sql`${usersTable.id} != ${userId}`)
     .orderBy(usersTable.username);
   res.json(users);
+});
+
+// DELETE /api/messages/:id — delete a specific message (admin or message owner)
+router.delete("/:id", requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id as string);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const userId = getSessionUser(req)!;
+  const user = (req as any).user;
+
+  const [msg] = await db.select().from(messagesTable).where(eq(messagesTable.id, id)).limit(1);
+  if (!msg) { res.status(404).json({ error: "Message not found" }); return; }
+
+  if (user?.role !== "admin" && msg.senderId !== userId) {
+    res.status(403).json({ error: "Cannot delete another user's message" }); return;
+  }
+
+  await db.delete(messagesTable).where(eq(messagesTable.id, id));
+  await logActivity(req, "message.deleted", "message", id, `Deleted message ${id}`);
+  res.json({ message: "Deleted" });
+});
+
+// DELETE /api/messages/global/clear — clear all global messages (admin only)
+router.delete("/global/clear", requireAuth, requireAdmin, async (req, res) => {
+  const result = await db.delete(messagesTable).where(isNull(messagesTable.recipientId)).returning({ id: messagesTable.id });
+  await logActivity(req, "messages.cleared", "message", 0, `Cleared global channel (${result.length} messages)`);
+  res.json({ deleted: result.length });
+});
+
+// DELETE /api/messages/direct/:userId/clear — clear entire DM thread (admin only)
+router.delete("/direct/:userId/clear", requireAuth, requireAdmin, async (req, res) => {
+  const otherId = parseInt(req.params.userId as string);
+  if (isNaN(otherId)) { res.status(400).json({ error: "Invalid user ID" }); return; }
+
+  const userId = getSessionUser(req)!;
+  const result = await db
+    .delete(messagesTable)
+    .where(
+      or(
+        and(eq(messagesTable.senderId, userId), eq(messagesTable.recipientId, otherId)),
+        and(eq(messagesTable.senderId, otherId), eq(messagesTable.recipientId, userId)),
+      )
+    )
+    .returning({ id: messagesTable.id });
+
+  await logActivity(req, "messages.thread.cleared", "message", otherId, `Cleared DM thread with user ${otherId} (${result.length} messages)`);
+  res.json({ deleted: result.length });
 });
 
 export default router;

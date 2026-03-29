@@ -319,6 +319,46 @@ router.get("/:id/messages/since/:lastId", requireAuth, async (req, res) => {
   res.json(rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })));
 });
 
+// DELETE /api/channels/:id/messages/:msgId — delete a channel message (admin or own)
+router.delete("/:id/messages/:msgId", requireAuth, async (req, res) => {
+  const id = parseInt(req.params.id as string);
+  const msgId = parseInt(req.params.msgId as string);
+  if (isNaN(id) || isNaN(msgId)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const userId = sessionUser(req);
+  const user = (req as any).user;
+
+  const [msg] = await db
+    .select()
+    .from(channelMessagesTable)
+    .where(and(eq(channelMessagesTable.id, msgId), eq(channelMessagesTable.channelId, id)))
+    .limit(1);
+
+  if (!msg) { res.status(404).json({ error: "Message not found" }); return; }
+
+  if (user?.role !== "admin" && msg.senderId !== userId) {
+    res.status(403).json({ error: "Cannot delete another user's message" }); return;
+  }
+
+  await db.delete(channelMessagesTable).where(eq(channelMessagesTable.id, msgId));
+  await logActivity(req, "channel.message.deleted", "channel", id, `Deleted message ${msgId} from channel ${id}`);
+  res.json({ message: "Deleted" });
+});
+
+// DELETE /api/channels/:id/messages/clear — clear all messages in a channel (admin only)
+router.delete("/:id/messages/clear", requireAuth, requireAdmin, async (req, res) => {
+  const id = parseInt(req.params.id as string);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
+
+  const result = await db
+    .delete(channelMessagesTable)
+    .where(eq(channelMessagesTable.channelId, id))
+    .returning({ id: channelMessagesTable.id });
+
+  await logActivity(req, "channel.messages.cleared", "channel", id, `Cleared all messages in channel ${id} (${result.length} messages)`);
+  res.json({ deleted: result.length });
+});
+
 // POST /api/channels/:id/messages — send message
 router.post("/:id/messages", requireAuth, async (req, res) => {
   const id = parseInt(req.params.id);
