@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db, channelsTable, channelMembersTable, channelMessagesTable, usersTable, rosterTable } from "@workspace/db";
 import { eq, and, inArray, desc, gt, sql } from "drizzle-orm";
-import { requireAuth, requireAdmin } from "../lib/auth.js";
+import { requireAuth, requireAdminOrPerm, hasPerm } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
@@ -25,7 +25,7 @@ router.get("/", requireAuth, async (req, res) => {
   const user = (req as any).user;
 
   let channels;
-  if (user?.role === "admin") {
+  if (user?.role === "admin" || hasPerm(req, "canManageChannels")) {
     channels = await db.select().from(channelsTable).orderBy(channelsTable.name);
   } else {
     const memberships = await db
@@ -68,7 +68,7 @@ router.get("/", requireAuth, async (req, res) => {
 });
 
 // POST /api/channels — create channel (admin only)
-router.post("/", requireAuth, requireAdmin, async (req, res) => {
+router.post("/", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const userId = sessionUser(req);
   const { name, description, memberUserIds, clearanceLevelId, rankId } = req.body as {
     name: string;
@@ -131,7 +131,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 });
 
 // PUT /api/channels/:id — update channel (admin only)
-router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
+router.put("/:id", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
@@ -152,7 +152,7 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/channels/:id — delete channel (admin only)
-router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/:id", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
@@ -191,7 +191,7 @@ router.get("/:id/members", requireAuth, async (req, res) => {
 });
 
 // POST /api/channels/:id/members — add members (admin only)
-router.post("/:id/members", requireAuth, requireAdmin, async (req, res) => {
+router.post("/:id/members", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
@@ -242,7 +242,7 @@ router.post("/:id/members", requireAuth, requireAdmin, async (req, res) => {
 });
 
 // DELETE /api/channels/:id/members/:userId — remove member (admin only)
-router.delete("/:id/members/:userId", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/:id/members/:userId", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const id = parseInt(req.params.id);
   const uid = parseInt(req.params.userId);
   if (isNaN(id) || isNaN(uid)) { res.status(400).json({ error: "Invalid ID" }); return; }
@@ -346,7 +346,7 @@ router.delete("/:id/messages/:msgId", requireAuth, async (req, res) => {
 });
 
 // DELETE /api/channels/:id/messages/clear — clear all messages in a channel (admin only)
-router.delete("/:id/messages/clear", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/:id/messages/clear", requireAuth, requireAdminOrPerm("canManageChannels"), async (req, res) => {
   const id = parseInt(req.params.id as string);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 

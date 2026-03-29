@@ -303,6 +303,20 @@ function AccessDialog({ user, onClose }: { user: any; onClose: () => void }) {
   );
 }
 
+function PermToggle({ label, desc, checked, disabled, onChange }: {
+  label: string; desc: string; checked: boolean; disabled: boolean; onChange: (v: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 bg-secondary/20 border border-border/20 rounded px-3 py-2">
+      <div className="flex flex-col min-w-0">
+        <span className="font-mono text-[10px] uppercase tracking-widest text-foreground/80">{label}</span>
+        <span className="font-mono text-[9px] text-muted-foreground/60">{desc}</span>
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} className="shrink-0" />
+    </div>
+  );
+}
+
 export default function Users() {
   const queryClient = useQueryClient();
   const [isNewDialogOpen, setIsNewDialogOpen] = useState(false);
@@ -311,6 +325,10 @@ export default function Users() {
   const [accessUser, setAccessUser] = useState<any>(null);
   const [mfaResetUser, setMfaResetUser] = useState<any>(null);
   const [isResettingMfa, setIsResettingMfa] = useState(false);
+
+  const defaultPerms = { canManageRoster: false, canManageOrg: false, canManageChannels: false, canViewActivity: false, canManageUsers: false };
+  const [editingPerms, setEditingPerms] = useState(defaultPerms);
+  const [permsLoading, setPermsLoading] = useState(false);
 
   const settings = useSettings();
   const { data: currentUser } = useGetCurrentUser();
@@ -357,9 +375,15 @@ export default function Users() {
     defaultValues: { username: "", email: "", role: "viewer", password: "", clearanceId: null },
   });
 
-  const openEditDialog = (user: any) => {
+  const openEditDialog = async (user: any) => {
     editForm.reset({ username: user.username, email: user.email, role: user.role, password: "", clearanceId: user.clearanceId ?? null });
+    setEditingPerms(defaultPerms);
     setEditingUser(user);
+    setPermsLoading(true);
+    try {
+      const res = await fetch(`/api/users/${user.id}/permissions`, { credentials: "include" });
+      if (res.ok) { const p = await res.json(); setEditingPerms({ canManageRoster: !!p.canManageRoster, canManageOrg: !!p.canManageOrg, canManageChannels: !!p.canManageChannels, canViewActivity: !!p.canViewActivity, canManageUsers: !!p.canManageUsers }); }
+    } catch { /* silently fail */ } finally { setPermsLoading(false); }
   };
 
   const onNewSubmit = async (data: z.infer<typeof createUserSchema>) => {
@@ -378,9 +402,17 @@ export default function Users() {
     try {
       const payload: any = { ...data };
       if (!payload.password) delete payload.password;
-      // clearanceId: pass null to unset, number to set
       if (payload.clearanceId === "" || payload.clearanceId === undefined) delete payload.clearanceId;
       await updateUser({ id: editingUser.id, data: payload });
+      // Save permissions (only meaningful for non-admin users)
+      if (editingUser.role !== "admin" || data.role !== "admin") {
+        await fetch(`/api/users/${editingUser.id}/permissions`, {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(editingPerms),
+        });
+      }
       queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
       toast({ title: "Auth Modified", description: "Account protocols updated." });
       setEditingUser(null);
@@ -601,7 +633,7 @@ export default function Users() {
       </Dialog>
 
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent className="bg-card border-primary/30 sm:max-w-[425px]">
+        <DialogContent className="bg-card border-primary/30 sm:max-w-[460px] max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle className="font-display uppercase tracking-widest text-primary flex items-center gap-2">
               <Settings className="w-5 h-5" /> Modify Protocols
@@ -609,7 +641,9 @@ export default function Users() {
             <DialogDescription className="font-mono text-xs uppercase">Target: {editingUser?.username}</DialogDescription>
           </DialogHeader>
           <Form {...editForm}>
-            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4 pt-4">
+            <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="flex flex-col flex-1 min-h-0">
+            <ScrollArea className="flex-1 pr-3">
+            <div className="space-y-4 pt-4 pb-2">
               <FormField control={editForm.control} name="username" render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Identity</FormLabel>
@@ -677,6 +711,25 @@ export default function Users() {
                   <FormMessage className="font-mono text-xs text-destructive" />
                 </FormItem>
               )} />
+
+              {/* Permission Overrides — hidden for admin users since they have everything */}
+              {editingUser?.role !== "admin" && editForm.watch("role") !== "admin" && (
+                <div className="space-y-2 pt-2 border-t border-border/30">
+                  <p className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
+                    <Shield className="w-3 h-3" /> Permission Overrides
+                    {permsLoading && <span className="text-[9px] text-primary/60 animate-pulse ml-1">— Loading...</span>}
+                  </p>
+                  <p className="font-mono text-[9px] text-muted-foreground/60 uppercase">Grant additional capabilities beyond this user's base role.</p>
+                  <PermToggle label="Manage Roster" desc="Create/edit/delete roster members" checked={editingPerms.canManageRoster} disabled={permsLoading} onChange={(v) => setEditingPerms(p => ({ ...p, canManageRoster: v }))} />
+                  <PermToggle label="Manage Org Structure" desc="Create/edit squads, ranks, org levels" checked={editingPerms.canManageOrg} disabled={permsLoading} onChange={(v) => setEditingPerms(p => ({ ...p, canManageOrg: v }))} />
+                  <PermToggle label="Manage Channels" desc="Create/manage/delete group channels" checked={editingPerms.canManageChannels} disabled={permsLoading} onChange={(v) => setEditingPerms(p => ({ ...p, canManageChannels: v }))} />
+                  <PermToggle label="View Activity Logs" desc="Access the audit/activity log" checked={editingPerms.canViewActivity} disabled={permsLoading} onChange={(v) => setEditingPerms(p => ({ ...p, canViewActivity: v }))} />
+                  <PermToggle label="Manage Users" desc="Create/edit/delete user accounts" checked={editingPerms.canManageUsers} disabled={permsLoading} onChange={(v) => setEditingPerms(p => ({ ...p, canManageUsers: v }))} />
+                </div>
+              )}
+
+            </div>
+            </ScrollArea>
               <DialogFooter className="pt-4">
                 <Button type="submit" disabled={isUpdating} className="w-full font-display uppercase tracking-widest shadow-[0_0_10px_rgba(218,165,32,0.2)]">
                   {isUpdating ? "Overwriting..." : "Apply Protocols"}

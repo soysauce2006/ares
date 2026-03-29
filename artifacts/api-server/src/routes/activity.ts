@@ -2,11 +2,11 @@ import { Router } from "express";
 import { db, activityLogsTable, usersTable } from "@workspace/db";
 import { eq, desc, count } from "drizzle-orm";
 import { ListActivityLogsQueryParams } from "@workspace/api-zod";
-import { requireAuth, requireAdmin } from "../lib/auth.js";
+import { requireAuth, requireAdminOrPerm } from "../lib/auth.js";
 
 const router = Router();
 
-router.get("/", requireAuth, requireAdmin, async (req, res) => {
+router.get("/", requireAuth, requireAdminOrPerm("canViewActivity"), async (req, res) => {
   const parsed = ListActivityLogsQueryParams.safeParse({
     limit: req.query.limit ? Number(req.query.limit) : 50,
     offset: req.query.offset ? Number(req.query.offset) : 0,

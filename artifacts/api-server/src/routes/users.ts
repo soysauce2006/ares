@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { db, usersTable, clearanceLevelsTable } from "@workspace/db";
 import { eq, inArray } from "drizzle-orm";
 import { CreateUserBody, UpdateUserBody, GetUserParams, UpdateUserParams, DeleteUserParams } from "@workspace/api-zod";
-import { requireAuth, requireAdmin } from "../lib/auth.js";
+import { requireAuth, requireAdmin, requireAdminOrPerm } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
 
 const router = Router();
@@ -39,12 +39,12 @@ async function userToProfile(user: typeof usersTable.$inferSelect) {
   return profile;
 }
 
-router.get("/", requireAuth, requireAdmin, async (_req, res) => {
+router.get("/", requireAuth, requireAdminOrPerm("canManageUsers"), async (_req, res) => {
   const users = await db.select().from(usersTable).orderBy(usersTable.createdAt);
   res.json(await usersWithClearance(users));
 });
 
-router.post("/", requireAuth, requireAdmin, async (req, res) => {
+router.post("/", requireAuth, requireAdminOrPerm("canManageUsers"), async (req, res) => {
   const parsed = CreateUserBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", message: parsed.error.message });
@@ -72,7 +72,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
   res.status(201).json(await userToProfile(user));
 });
 
-router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
+router.get("/:id", requireAuth, requireAdminOrPerm("canManageUsers"), async (req, res) => {
   const parsed = GetUserParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid ID" });
@@ -86,7 +86,7 @@ router.get("/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(await userToProfile(users[0]));
 });
 
-router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
+router.put("/:id", requireAuth, requireAdminOrPerm("canManageUsers"), async (req, res) => {
   const paramParsed = UpdateUserParams.safeParse({ id: Number(req.params.id) });
   if (!paramParsed.success) {
     res.status(400).json({ error: "Invalid ID" });
@@ -127,7 +127,7 @@ router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   res.json(await userToProfile(user));
 });
 
-router.post("/:id/reset-mfa", requireAuth, requireAdmin, async (req, res) => {
+router.post("/:id/reset-mfa", requireAuth, requireAdminOrPerm("canManageUsers"), async (req, res) => {
   const id = parseInt(req.params.id);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid ID" }); return; }
 
@@ -143,7 +143,7 @@ router.post("/:id/reset-mfa", requireAuth, requireAdmin, async (req, res) => {
   res.json({ message: "MFA reset successfully", userId: id });
 });
 
-router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
+router.delete("/:id", requireAuth, requireAdminOrPerm("canManageUsers"), async (req, res) => {
   const parsed = DeleteUserParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid ID" });

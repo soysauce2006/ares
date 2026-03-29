@@ -10,3 +10,4 @@ export * from "./user-access";
 export * from "./clearances";
 export * from "./messages";
 export * from "./channels";
+export * from "./user-permissions";

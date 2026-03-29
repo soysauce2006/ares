@@ -1,4 +1,4 @@
-import { db, sessionsTable, usersTable, mfaPendingTable } from "@workspace/db";
+import { db, sessionsTable, usersTable, mfaPendingTable, userPermissionsTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
@@ -21,6 +21,29 @@ export async function getSession(sessionId: string) {
 
 export async function deleteSession(sessionId: string) {
   await db.delete(sessionsTable).where(eq(sessionsTable.sessionId, sessionId));
+}
+
+export type PermFlag =
+  | "canManageRoster"
+  | "canManageOrg"
+  | "canManageChannels"
+  | "canViewActivity"
+  | "canManageUsers";
+
+async function loadPermissions(userId: number) {
+  const rows = await db
+    .select()
+    .from(userPermissionsTable)
+    .where(eq(userPermissionsTable.userId, userId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
+export function hasPerm(req: Request, flag: PermFlag): boolean {
+  const user = (req as any).user;
+  if (user?.role === "admin") return true;
+  const perms = (req as any).permissions;
+  return !!perms?.[flag];
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -51,8 +74,11 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
+  const permissions = await loadPermissions(user.id);
+
   (req as any).user = user;
   (req as any).session = session;
+  (req as any).permissions = permissions;
   next();
 }
 
@@ -67,11 +93,26 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
 export async function requireManagerOrAdmin(req: Request, res: Response, next: NextFunction) {
   const user = (req as any).user;
-  if (user?.role !== "admin" && user?.role !== "manager") {
-    res.status(403).json({ error: "Forbidden", message: "Manager or admin access required" });
+  if (user?.role === "admin" || user?.role === "manager") {
+    next();
     return;
   }
-  next();
+  const perms = (req as any).permissions;
+  if (perms?.canManageRoster || perms?.canManageOrg) {
+    next();
+    return;
+  }
+  res.status(403).json({ error: "Forbidden", message: "Manager or admin access required" });
+}
+
+export function requireAdminOrPerm(flag: PermFlag) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (hasPerm(req, flag)) {
+      next();
+    } else {
+      res.status(403).json({ error: "Forbidden", message: "Insufficient permissions" });
+    }
+  };
 }
 
 export async function createMfaPendingToken(userId: number): Promise<string> {
