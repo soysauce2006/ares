@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import {
   Radio, Send, Globe, MessageSquare, User as UserIcon, Plus, X, Users, Trash2,
-  ChevronDown, ChevronRight, Settings2, UserPlus, AlertTriangle,
+  ChevronDown, ChevronRight, Settings2, UserPlus, AlertTriangle, ShieldCheck,
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import {
@@ -52,7 +52,7 @@ async function apiFetch(path: string, opts?: RequestInit) {
   return res.json();
 }
 
-type MsgUser = { id: number; username: string; unread?: number };
+type MsgUser = { id: number; username: string; role?: string; unread?: number };
 type Message = {
   id: number;
   senderId: number;
@@ -126,6 +126,7 @@ export default function Messages() {
   // Channel state
   const [channels, setChannels] = useState<Channel[]>([]);
   const [channelsOpen, setChannelsOpen] = useState(true);
+  const [adminsOpen, setAdminsOpen] = useState(true);
   const [newChannelOpen, setNewChannelOpen] = useState(false);
   const [manageChannelOpen, setManageChannelOpen] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
@@ -584,6 +585,50 @@ export default function Messages() {
                 </div>
               )}
             </div>
+
+            {/* Command Staff section */}
+            {(() => {
+              const adminUsers = allUsers.filter(u => u.role === "admin");
+              if (adminUsers.length === 0) return null;
+              return (
+                <div className="border-b border-border/30">
+                  <button
+                    className="flex items-center gap-1 w-full px-4 py-2 text-left"
+                    onClick={() => setAdminsOpen(o => !o)}
+                  >
+                    {adminsOpen
+                      ? <ChevronDown className="w-3 h-3 text-primary/60" />
+                      : <ChevronRight className="w-3 h-3 text-primary/60" />
+                    }
+                    <ShieldCheck className="w-3 h-3 text-primary/70 ml-0.5" />
+                    <span className="font-mono text-[10px] uppercase text-primary/70 tracking-widest ml-1">Command Staff</span>
+                  </button>
+                  {adminsOpen && (
+                    <div className="pb-1">
+                      {adminUsers.map(u => {
+                        const isActive = activeThread.type === "direct" && activeThread.user.id === u.id;
+                        return (
+                          <button
+                            key={u.id}
+                            onClick={() => startDm(u)}
+                            className={cn(
+                              "flex items-center gap-2.5 w-full px-4 py-2 transition-colors text-left",
+                              isActive ? "bg-primary/10 border-l-2 border-l-primary" : "hover:bg-secondary/20"
+                            )}
+                          >
+                            <div className="w-5 h-5 rounded-full bg-primary/20 border border-primary/40 flex items-center justify-center shrink-0">
+                              <ShieldCheck className="w-2.5 h-2.5 text-primary" />
+                            </div>
+                            <span className="font-mono text-xs text-foreground/80 flex-1 truncate">{u.username}</span>
+                            <span className="font-mono text-[8px] uppercase text-primary/50 shrink-0">Admin</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* DM section */}
             <div className="flex items-center justify-between px-4 py-2 border-b border-border/30">

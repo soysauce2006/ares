@@ -191,7 +191,7 @@ router.post("/", requireAuth, async (req, res) => {
 router.get("/users", requireAuth, async (req, res) => {
   const userId = getSessionUser(req)!;
   const users = await db
-    .select({ id: usersTable.id, username: usersTable.username })
+    .select({ id: usersTable.id, username: usersTable.username, role: usersTable.role })
     .from(usersTable)
     .where(sql`${usersTable.id} != ${userId}`)
     .orderBy(usersTable.username);
