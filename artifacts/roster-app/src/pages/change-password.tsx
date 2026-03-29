@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Shield, Lock, Eye, EyeOff, AlertTriangle } from "lucide-react";
-import { useChangePassword } from "@workspace/api-client-react";
+import { useChangePassword, useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 
 export default function ChangePasswordPage() {
   const [, setLocation] = useLocation();
@@ -14,11 +13,19 @@ export default function ChangePasswordPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
 
+  const logout = useLogout({
+    mutation: {
+      onSettled: () => {
+        queryClient.clear();
+        setLocation("/login");
+      },
+    },
+  });
+
   const changePassword = useChangePassword({
     mutation: {
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: getGetCurrentUserQueryKey() });
-        setLocation("/");
+        logout.mutate();
       },
       onError: (err: any) => {
         setError(err?.message || "Failed to change password");
