@@ -31,7 +31,7 @@ pnpm workspace monorepo using TypeScript. Full-stack roster management applicati
 - **Site Settings** (admin only): Rename any organizational tier (e.g., "Squad" → "Fire Team", "Division" → "Battalion"), change site name/subtitle — reflected everywhere in the UI
 - **User-Level Sector Access Control** (admin only): Restrict any user to specific org units (Divisions/Companies/Squads). Admins grant access at any tier level; access is hierarchically expanded when filtering roster/squads data. "Unrestricted" = sees everything; "Restricted with no grants" = sees nothing. Persisted via sentinel row.
 - **Clearance Ranks** (admin only): Custom clearance levels with name, numeric level, and color. Assignable per user from the Edit User dialog. Displayed as colored badges in the users table.
-- **Comms Terminal** (messaging): Global "Command Channel" broadcast + direct messages between users. Polling-based real-time updates every 3 seconds. Sidebar badge shows unread DM count. Supports up to 2000 chars per message.
+- **Comms Terminal** (messaging): Global "Command Channel" broadcast + direct messages between users + Group Channels (admin-created, with membership by manual user selection, clearance level, or rank). Polling-based real-time updates every 3 seconds. Sidebar badge shows unread DM count. Supports up to 2000 chars per message. Admins can create, manage (add/remove members), and delete channels.
 - **Mobile Friendly**: Responsive sidebar with collapsible mobile menu
 
 ## Structure
