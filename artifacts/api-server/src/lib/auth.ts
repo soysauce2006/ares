@@ -1,4 +1,4 @@
-import { db, sessionsTable, usersTable, mfaPendingTable, userPermissionsTable } from "@workspace/db";
+import { db, sessionsTable, usersTable, mfaPendingTable, userPermissionsTable, customRolesTable } from "@workspace/db";
 import { eq, and, gt } from "drizzle-orm";
 import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
@@ -39,11 +39,24 @@ async function loadPermissions(userId: number) {
   return rows[0] ?? null;
 }
 
+async function loadCustomRolePerms(customRoleId: number | null) {
+  if (!customRoleId) return null;
+  const rows = await db
+    .select()
+    .from(customRolesTable)
+    .where(eq(customRolesTable.id, customRoleId))
+    .limit(1);
+  return rows[0] ?? null;
+}
+
 export function hasPerm(req: Request, flag: PermFlag): boolean {
   const user = (req as any).user;
   if (user?.role === "admin") return true;
   const perms = (req as any).permissions;
-  return !!perms?.[flag];
+  if (perms?.[flag]) return true;
+  const rolePerms = (req as any).customRolePerms;
+  if (rolePerms?.[flag]) return true;
+  return false;
 }
 
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
@@ -74,11 +87,15 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  const permissions = await loadPermissions(user.id);
+  const [permissions, customRolePerms] = await Promise.all([
+    loadPermissions(user.id),
+    loadCustomRolePerms((user as any).customRoleId ?? null),
+  ]);
 
   (req as any).user = user;
   (req as any).session = session;
   (req as any).permissions = permissions;
+  (req as any).customRolePerms = customRolePerms;
   next();
 }
 
@@ -98,7 +115,8 @@ export async function requireManagerOrAdmin(req: Request, res: Response, next: N
     return;
   }
   const perms = (req as any).permissions;
-  if (perms?.canManageRoster || perms?.canManageOrg) {
+  const rolePerms = (req as any).customRolePerms;
+  if (perms?.canManageRoster || perms?.canManageOrg || rolePerms?.canManageRoster || rolePerms?.canManageOrg) {
     next();
     return;
   }

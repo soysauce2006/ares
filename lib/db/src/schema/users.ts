@@ -11,6 +11,7 @@ export const usersTable = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: userRoleEnum("role").notNull().default("viewer"),
   clearanceId: integer("clearance_id"),
+  customRoleId: integer("custom_role_id"),
   mfaEnabled: boolean("mfa_enabled").notNull().default(false),
   mfaSecret: text("mfa_secret"),
   backupCodes: text("backup_codes").array(),

@@ -21,6 +21,7 @@ import ChangePassword from "@/pages/change-password";
 import Settings from "@/pages/settings";
 import Clearances from "@/pages/clearances";
 import Messages from "@/pages/messages";
+import Roles from "@/pages/roles";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,6 +52,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       <Route path="/clearances" component={Clearances} />
       <Route path="/messages" component={Messages} />
+      <Route path="/roles" component={Roles} />
       <Route component={NotFound} />
     </Switch>
   );

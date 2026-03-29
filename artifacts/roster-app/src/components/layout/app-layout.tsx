@@ -28,6 +28,7 @@ import {
   Building2,
   Layers,
   Radio,
+  Key,
 } from "lucide-react";
 import { useGetCurrentUser, useLogout, getGetCurrentUserQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -132,6 +133,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const adminNav = [
     { title: "Clearance Ranks", href: "/clearances", icon: Shield },
+    { title: "Command Roles", href: "/roles", icon: Key },
     { title: "Personnel Auth", href: "/users", icon: Users },
     { title: "Activity Log", href: "/activity", icon: Activity },
     { title: "System Config", href: "/settings", icon: Settings },

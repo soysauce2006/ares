@@ -15,6 +15,7 @@ import clearancesRouter from "./clearances.js";
 import messagesRouter from "./messages.js";
 import updateRouter from "./update.js";
 import channelsRouter from "./channels.js";
+import rolesRouter from "./roles.js";
 
 const router: IRouter = Router();
 
@@ -33,6 +34,7 @@ router.use("/clearances", clearancesRouter);
 router.use("/messages", messagesRouter);
 router.use("/channels", channelsRouter);
 router.use("/update", updateRouter);
+router.use("/roles", rolesRouter);
 router.use("/", orgRouter);
 
 export default router;

@@ -22,8 +22,8 @@ import {
   useGetCurrentUser, useGetUserAccess, useSetUserAccess, getGetUserAccessQueryKey,
   useListOrgLevel1, useListOrgLevel2, useListSquads, useListClearances,
 } from "@workspace/api-client-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ClearanceBadge } from "@/pages/clearances";
-import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +43,7 @@ const updateUserSchema = z.object({
   role: z.enum(["admin", "manager", "viewer"]).optional(),
   password: z.string().optional().or(z.literal('')),
   clearanceId: z.coerce.number().nullable().optional(),
+  customRoleId: z.coerce.number().nullable().optional(),
 });
 
 type GrantEntry = { grantType: "level1" | "level2" | "squad"; grantId: number };
@@ -372,11 +373,16 @@ export default function Users() {
 
   const editForm = useForm<z.infer<typeof updateUserSchema>>({
     resolver: zodResolver(updateUserSchema),
-    defaultValues: { username: "", email: "", role: "viewer", password: "", clearanceId: null },
+    defaultValues: { username: "", email: "", role: "viewer", password: "", clearanceId: null, customRoleId: null },
+  });
+
+  const { data: customRoles } = useQuery<any[]>({
+    queryKey: ["roles"],
+    queryFn: async () => { const res = await fetch("/api/roles", { credentials: "include" }); if (!res.ok) return []; return res.json(); },
   });
 
   const openEditDialog = async (user: any) => {
-    editForm.reset({ username: user.username, email: user.email, role: user.role, password: "", clearanceId: user.clearanceId ?? null });
+    editForm.reset({ username: user.username, email: user.email, role: user.role, password: "", clearanceId: user.clearanceId ?? null, customRoleId: user.customRoleId ?? null });
     setEditingPerms(defaultPerms);
     setEditingUser(user);
     setPermsLoading(true);
@@ -695,6 +701,35 @@ export default function Users() {
                       {clearances?.map(c => (
                         <SelectItem key={c.id} value={String(c.id)} className="font-mono text-xs uppercase">
                           L{c.level} — {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="font-mono text-xs text-destructive" />
+                </FormItem>
+              )} />
+              <FormField control={editForm.control} name="customRoleId" render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-mono text-xs uppercase text-muted-foreground">Custom Role</FormLabel>
+                  <Select
+                    onValueChange={(v) => field.onChange(v === "none" ? null : Number(v))}
+                    value={field.value === null || field.value === undefined ? "none" : String(field.value)}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="bg-secondary/50 border-border/50 font-mono text-xs uppercase">
+                        <SelectValue placeholder="No custom role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-card border-border/50">
+                      <SelectItem value="none" className="font-mono text-xs uppercase text-muted-foreground">
+                        — No Custom Role —
+                      </SelectItem>
+                      {customRoles?.map(r => (
+                        <SelectItem key={r.id} value={String(r.id)} className="font-mono text-xs uppercase">
+                          <span className="inline-flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full shrink-0 inline-block" style={{ backgroundColor: r.color }} />
+                            {r.name}
+                          </span>
                         </SelectItem>
                       ))}
                     </SelectContent>

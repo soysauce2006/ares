@@ -26,6 +26,7 @@ async function usersWithClearance(userRows: (typeof usersTable.$inferSelect)[]) 
       clearanceName: cl?.name ?? null,
       clearanceLevel: cl?.level ?? null,
       clearanceColor: cl?.color ?? null,
+      customRoleId: user.customRoleId ?? null,
       mfaEnabled: user.mfaEnabled,
       mustChangePassword: user.mustChangePassword,
       createdAt: user.createdAt.toISOString(),
@@ -104,10 +105,13 @@ router.put("/:id", requireAuth, requireAdminOrPerm("canManageUsers"), async (req
   if (parsed.data.role) updates.role = parsed.data.role;
   if (parsed.data.password) updates.passwordHash = await bcrypt.hash(parsed.data.password, 12);
 
-  // Support clearanceId directly from req.body (not in generated schema but we read it here)
+  // Support clearanceId and customRoleId directly from req.body
   const rawBody = req.body as any;
   if ("clearanceId" in rawBody) {
     updates.clearanceId = rawBody.clearanceId === null || rawBody.clearanceId === "" ? null : Number(rawBody.clearanceId) || null;
+  }
+  if ("customRoleId" in rawBody) {
+    updates.customRoleId = rawBody.customRoleId === null || rawBody.customRoleId === "" ? null : Number(rawBody.customRoleId) || null;
   }
 
   updates.updatedAt = new Date();
