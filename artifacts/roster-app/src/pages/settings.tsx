@@ -166,6 +166,47 @@ export default function SettingsPage() {
     });
   };
 
+  // ── Package upload state ──────────────────────────────────────────────────
+  const [pkgFile, setPkgFile] = useState<File | null>(null);
+  const [pkgUploading, setPkgUploading] = useState(false);
+  const [pkgResult, setPkgResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [restartCountdown, setRestartCountdown] = useState<number | null>(null);
+  const pkgInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handlePackageUpload = async () => {
+    if (!pkgFile || pkgUploading) return;
+    setPkgUploading(true);
+    setPkgResult(null);
+    try {
+      const fd = new FormData();
+      fd.append("package", pkgFile);
+      const res = await fetch(`${BASE}/api/update/upload`, {
+        method: "POST",
+        credentials: "include",
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPkgResult({ ok: false, message: data.error ?? "Upload failed" });
+        return;
+      }
+      setPkgResult({ ok: true, message: data.message });
+      setPkgFile(null);
+      // Start visible countdown so user knows a restart is coming
+      let count = 10;
+      setRestartCountdown(count);
+      const t = setInterval(() => {
+        count--;
+        setRestartCountdown(count);
+        if (count <= 0) clearInterval(t);
+      }, 1000);
+    } catch (e: any) {
+      setPkgResult({ ok: false, message: e.message ?? "Upload failed" });
+    } finally {
+      setPkgUploading(false);
+    }
+  };
+
   const handleUpload = async (key: ImageKey, file: File) => {
     if (!file.type.startsWith("image/")) {
       toast({ title: "Invalid file", description: "Please select an image file.", variant: "destructive" });
@@ -551,6 +592,121 @@ export default function SettingsPage() {
                 Enter a git repository URL above to enable update checks.
               </p>
             )}
+          </div>
+        </Card>
+
+        {/* Upload Update Package */}
+        <Card className="p-6 border-border/50 bg-card">
+          <h2 className="text-sm font-display font-bold uppercase tracking-widest text-primary border-b border-border/30 pb-3 mb-5 flex items-center gap-2">
+            <Upload className="w-4 h-4" /> Upload Update Package
+          </h2>
+
+          <div className="space-y-4">
+            <p className="text-xs font-mono text-muted-foreground">
+              Upload a pre-built <code className="text-primary/80 bg-primary/5 px-1 rounded">ares-update.zip</code> to apply an update without SSH access.
+              The server will restart automatically after a successful upload.
+            </p>
+
+            {/* Drop zone */}
+            <div
+              className={`relative border-2 border-dashed rounded-lg px-6 py-8 text-center transition-colors cursor-pointer ${
+                pkgFile
+                  ? "border-primary/50 bg-primary/5"
+                  : "border-border/40 hover:border-primary/30 hover:bg-primary/5"
+              }`}
+              onClick={() => pkgInputRef.current?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const f = e.dataTransfer.files?.[0];
+                if (f && f.name.endsWith(".zip")) { setPkgFile(f); setPkgResult(null); }
+                else toast({ title: "Invalid file", description: "Please drop a .zip file.", variant: "destructive" });
+              }}
+            >
+              <input
+                ref={pkgInputRef}
+                type="file"
+                accept=".zip,application/zip"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) { setPkgFile(f); setPkgResult(null); }
+                  e.target.value = "";
+                }}
+              />
+              {pkgFile ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="p-2 rounded-lg bg-primary/10 border border-primary/30">
+                    <Upload className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-mono text-sm text-foreground font-bold">{pkgFile.name}</p>
+                    <p className="font-mono text-[11px] text-muted-foreground">{(pkgFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                  </div>
+                  <button
+                    className="ml-2 text-muted-foreground hover:text-destructive transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setPkgFile(null); setPkgResult(null); }}
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <Upload className="w-6 h-6 text-muted-foreground/50 mx-auto" />
+                  <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Click or drag-drop your .zip file here</p>
+                  <p className="font-mono text-[10px] text-muted-foreground/50">Max 100 MB</p>
+                </div>
+              )}
+            </div>
+
+            {/* Upload button */}
+            <Button
+              onClick={handlePackageUpload}
+              disabled={!pkgFile || pkgUploading}
+              className="font-display uppercase tracking-widest shadow-[0_0_10px_rgba(218,165,32,0.15)]"
+            >
+              <Upload className="w-4 h-4 mr-2" />
+              {pkgUploading ? "Uploading & Applying..." : "Upload & Apply Update"}
+            </Button>
+
+            {/* Result */}
+            {pkgResult && (
+              <div className={`flex items-start gap-3 rounded-sm p-3 border ${
+                pkgResult.ok ? "bg-green-500/10 border-green-500/30" : "bg-destructive/10 border-destructive/30"
+              }`}>
+                {pkgResult.ok
+                  ? <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  : <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                }
+                <div>
+                  <p className={`text-xs font-mono font-bold uppercase tracking-wider ${pkgResult.ok ? "text-green-400" : "text-destructive"}`}>
+                    {pkgResult.ok ? "Update Applied" : "Upload Failed"}
+                  </p>
+                  <p className="text-xs font-mono text-muted-foreground mt-0.5">{pkgResult.message}</p>
+                  {pkgResult.ok && restartCountdown !== null && restartCountdown > 0 && (
+                    <p className="text-xs font-mono text-primary mt-1">
+                      Server restarting — page will reload in ~{restartCountdown}s
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Instructions */}
+            <div className="bg-background border border-border/40 rounded-sm p-4 space-y-2">
+              <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                <Terminal className="w-3 h-3" /> How to build an update package
+              </p>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Run this on your local machine (where the source code lives):
+              </p>
+              <code className="block text-[11px] font-mono bg-black/40 border border-border/30 rounded-sm px-3 py-2 text-primary/90 whitespace-pre-wrap">
+                {`# From the project root:\npnpm --filter @workspace/roster-app run build\npnpm --filter @workspace/api-server run build\n\n# Then zip the output:\ncp -r artifacts/roster-app/dist/public artifacts/api-server/dist/\ncd artifacts/api-server && zip -r ares-update.zip dist/index.cjs dist/public/`}
+              </code>
+              <p className="text-[10px] font-mono text-muted-foreground/50">
+                The ZIP must contain <code className="text-primary/70">dist/index.cjs</code> and <code className="text-primary/70">dist/public/</code> at its root. A backup of the current server bundle is saved as <code className="text-primary/70">index.cjs.bak</code> before applying.
+              </p>
+            </div>
           </div>
         </Card>
       </div>

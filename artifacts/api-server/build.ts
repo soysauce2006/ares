@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 // cause "Cannot find module" crashes in the Docker container.
 const allowlist = [
   "@google/generative-ai",
+  "adm-zip",
   "axios",
   "bcryptjs",
   "connect-pg-simple",
