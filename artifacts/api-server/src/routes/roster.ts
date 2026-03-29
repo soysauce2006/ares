@@ -10,7 +10,7 @@ import {
 } from "@workspace/api-zod";
 import { requireAuth, requireManagerOrAdmin } from "../lib/auth.js";
 import { logActivity } from "../lib/activity.js";
-import { getUserAccess } from "../lib/access.js";
+import { getUserAccess, AccessFilter } from "../lib/access.js";
 
 const router = Router();
 
@@ -46,6 +46,13 @@ function formatMember(row: { member: typeof rosterTable.$inferSelect; rank: type
   };
 }
 
+function canAccessSquad(squadId: number | null | undefined, access: AccessFilter): boolean {
+  if (access.unrestricted) return true;
+  if (squadId === null || squadId === undefined) return false;
+  return access.squadIds.includes(squadId);
+}
+
+// GET /roster — filtered by user's accessible squads
 router.get("/", requireAuth, async (req, res) => {
   const user = (req as any).user;
   const access = await getUserAccess(user.id, user.role);
@@ -72,10 +79,19 @@ router.get("/", requireAuth, async (req, res) => {
   res.json(rows.map(formatMember));
 });
 
+// POST /roster — restricted to squads the user can access
 router.post("/", requireAuth, requireManagerOrAdmin, async (req, res) => {
   const parsed = CreateMemberBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request", message: parsed.error.message });
+    return;
+  }
+
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+
+  if (!canAccessSquad(parsed.data.squadId ?? null, access)) {
+    res.status(403).json({ error: "Forbidden", message: "You do not have access to that squad." });
     return;
   }
 
@@ -101,6 +117,7 @@ router.post("/", requireAuth, requireManagerOrAdmin, async (req, res) => {
   res.status(201).json(formatMember(row));
 });
 
+// GET /roster/:id — only accessible if member is in user's scope
 router.get("/:id", requireAuth, async (req, res) => {
   const parsed = GetMemberParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
@@ -112,9 +129,18 @@ router.get("/:id", requireAuth, async (req, res) => {
     res.status(404).json({ error: "Member not found" });
     return;
   }
+
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+  if (!canAccessSquad(row.member.squadId, access)) {
+    res.status(403).json({ error: "Forbidden", message: "You do not have access to this member." });
+    return;
+  }
+
   res.json(formatMember(row));
 });
 
+// PUT /roster/:id — must have access to the member's current squad AND the new squad (if changing)
 router.put("/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
   const paramParsed = UpdateMemberParams.safeParse({ id: Number(req.params.id) });
   if (!paramParsed.success) {
@@ -124,6 +150,26 @@ router.put("/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
   const parsed = UpdateMemberBody.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: "Invalid request" });
+    return;
+  }
+
+  const existing = await getMemberWithDetails(paramParsed.data.id);
+  if (!existing) {
+    res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+
+  if (!canAccessSquad(existing.member.squadId, access)) {
+    res.status(403).json({ error: "Forbidden", message: "You do not have access to this member." });
+    return;
+  }
+
+  const newSquadId = "squadId" in parsed.data ? (parsed.data.squadId ?? null) : existing.member.squadId;
+  if (!canAccessSquad(newSquadId, access)) {
+    res.status(403).json({ error: "Forbidden", message: "You do not have access to the target squad." });
     return;
   }
 
@@ -156,6 +202,7 @@ router.put("/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
   res.json(formatMember(row));
 });
 
+// DELETE /roster/:id — must have access to the member's squad
 router.delete("/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
   const parsed = DeleteMemberParams.safeParse({ id: Number(req.params.id) });
   if (!parsed.success) {
@@ -166,6 +213,13 @@ router.delete("/:id", requireAuth, requireManagerOrAdmin, async (req, res) => {
   const member = rows[0];
   if (!member) {
     res.status(404).json({ error: "Member not found" });
+    return;
+  }
+
+  const user = (req as any).user;
+  const access = await getUserAccess(user.id, user.role);
+  if (!canAccessSquad(member.squadId, access)) {
+    res.status(403).json({ error: "Forbidden", message: "You do not have access to this member." });
     return;
   }
 
