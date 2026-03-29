@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Shield, Save, RotateCcw, Settings as SettingsIcon, Upload, X, Image as ImageIcon } from "lucide-react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Shield, Save, RotateCcw, Settings as SettingsIcon, Upload, X, Image as ImageIcon, GitBranch, RefreshCw, Download, Copy, CheckCircle, AlertCircle, Terminal } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -95,6 +95,73 @@ export default function SettingsPage() {
 
   const handleSave = () => updateSettings.mutate({ data: form as any });
   const handleReset = () => setForm(TEXT_DEFAULTS);
+
+  const [gitRepo, setGitRepo] = useState("");
+  const [gitBranch, setGitBranch] = useState("main");
+  const [gitSaving, setGitSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<{
+    currentCommit: string;
+    latestCommit: string | null;
+    updateAvailable: boolean;
+    gitRepo: string;
+    gitBranch: string;
+    error: string | null;
+  } | null>(null);
+
+  const loadGitConfig = useCallback(async () => {
+    try {
+      const res = await fetch(`${BASE}/api/update/config`, { credentials: "include" });
+      if (!res.ok) return;
+      const data = await res.json();
+      setGitRepo(data.gitRepo ?? "");
+      setGitBranch(data.gitBranch ?? "main");
+    } catch {}
+  }, []);
+
+  useEffect(() => { loadGitConfig(); }, [loadGitConfig]);
+
+  const saveGitConfig = async () => {
+    setGitSaving(true);
+    try {
+      const res = await fetch(`${BASE}/api/update/config`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ gitRepo, gitBranch }),
+      });
+      if (!res.ok) throw new Error("Save failed");
+      toast({ title: "Git config saved", description: "Repository settings updated." });
+    } catch {
+      toast({ title: "Error", description: "Failed to save git configuration.", variant: "destructive" });
+    } finally {
+      setGitSaving(false);
+    }
+  };
+
+  const checkForUpdates = useCallback(async () => {
+    setChecking(true);
+    try {
+      const res = await fetch(`${BASE}/api/update/status`, { credentials: "include" });
+      if (!res.ok) throw new Error("Check failed");
+      const data = await res.json();
+      setUpdateStatus(data);
+    } catch {
+      toast({ title: "Error", description: "Could not check for updates.", variant: "destructive" });
+    } finally {
+      setChecking(false);
+    }
+  }, []);
+
+  const updateCommand = `sudo bash /opt/ares/docker-update.sh${gitRepo ? ` ${gitRepo}` : ""}`;
+
+  const copyCommand = () => {
+    navigator.clipboard.writeText(updateCommand).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   const handleUpload = async (key: ImageKey, file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -328,6 +395,136 @@ export default function SettingsPage() {
                 {form.tier1LabelPlural} → {form.tier2LabelPlural} → {form.tier3LabelPlural} → Roster Members
               </p>
             </div>
+          </div>
+        </Card>
+
+        {/* System Updates */}
+        <Card className="p-6 border-border/50 bg-card">
+          <h2 className="text-sm font-display font-bold uppercase tracking-widest text-primary border-b border-border/30 pb-3 mb-5 flex items-center gap-2">
+            <Download className="w-4 h-4" /> System Updates
+          </h2>
+
+          <div className="space-y-5">
+            {/* Git config inputs */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-2">
+                <label className="block text-xs font-mono tracking-widest text-muted-foreground mb-1.5 uppercase">
+                  <GitBranch className="inline w-3 h-3 mr-1" /> Git Repository URL
+                </label>
+                <Input
+                  value={gitRepo}
+                  onChange={(e) => setGitRepo(e.target.value)}
+                  placeholder="https://github.com/your-org/ares.git"
+                  className="font-mono bg-background border-border/50 focus:border-primary text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono tracking-widest text-muted-foreground mb-1.5 uppercase">Branch</label>
+                <Input
+                  value={gitBranch}
+                  onChange={(e) => setGitBranch(e.target.value)}
+                  placeholder="main"
+                  className="font-mono bg-background border-border/50 focus:border-primary text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button
+                onClick={saveGitConfig}
+                disabled={gitSaving}
+                size="sm"
+                className="font-display uppercase tracking-widest text-xs"
+              >
+                <Save className="w-3 h-3 mr-1.5" />
+                {gitSaving ? "Saving..." : "Save Config"}
+              </Button>
+              <Button
+                onClick={checkForUpdates}
+                disabled={checking || !gitRepo}
+                variant="outline"
+                size="sm"
+                className="font-display uppercase tracking-widest text-xs border-border/50"
+                title={!gitRepo ? "Enter a git repo URL first" : undefined}
+              >
+                <RefreshCw className={`w-3 h-3 mr-1.5 ${checking ? "animate-spin" : ""}`} />
+                {checking ? "Checking..." : "Check for Updates"}
+              </Button>
+            </div>
+
+            {/* Update status */}
+            {updateStatus && (
+              <div className="space-y-3">
+                <div className={`flex items-start gap-3 rounded-sm p-3 border ${
+                  updateStatus.error
+                    ? "bg-destructive/10 border-destructive/30"
+                    : updateStatus.updateAvailable
+                      ? "bg-yellow-500/10 border-yellow-500/30"
+                      : "bg-green-500/10 border-green-500/30"
+                }`}>
+                  {updateStatus.error ? (
+                    <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
+                  ) : updateStatus.updateAvailable ? (
+                    <AlertCircle className="w-4 h-4 text-yellow-400 mt-0.5 shrink-0" />
+                  ) : (
+                    <CheckCircle className="w-4 h-4 text-green-400 mt-0.5 shrink-0" />
+                  )}
+                  <div className="space-y-1 min-w-0">
+                    {updateStatus.error ? (
+                      <p className="text-xs font-mono text-destructive">{updateStatus.error}</p>
+                    ) : updateStatus.updateAvailable ? (
+                      <p className="text-xs font-mono text-yellow-400 font-bold uppercase tracking-wider">Update Available</p>
+                    ) : (
+                      <p className="text-xs font-mono text-green-400 font-bold uppercase tracking-wider">
+                        {updateStatus.currentCommit === "unknown" ? "Up to date (version unknown)" : "Up to date"}
+                      </p>
+                    )}
+                    {!updateStatus.error && (
+                      <div className="space-y-0.5">
+                        <p className="text-[11px] font-mono text-muted-foreground">
+                          Current: <span className="text-foreground/80">{updateStatus.currentCommit === "unknown" ? "unknown (dev build)" : updateStatus.currentCommit.slice(0, 12)}</span>
+                        </p>
+                        {updateStatus.latestCommit && (
+                          <p className="text-[11px] font-mono text-muted-foreground">
+                            Latest:  <span className="text-foreground/80">{updateStatus.latestCommit.slice(0, 12)}</span>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Update command panel */}
+                <div className="bg-background border border-border/40 rounded-sm p-4 space-y-3">
+                  <p className="text-[11px] font-mono text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
+                    <Terminal className="w-3 h-3" /> Run this command on your server to apply updates:
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-xs font-mono bg-black/40 border border-border/30 rounded-sm px-3 py-2 text-primary/90 truncate">
+                      {updateCommand}
+                    </code>
+                    <Button
+                      onClick={copyCommand}
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 border-border/50 font-display uppercase tracking-widest text-xs"
+                    >
+                      {copied ? <CheckCircle className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+                      <span className="ml-1.5">{copied ? "Copied" : "Copy"}</span>
+                    </Button>
+                  </div>
+                  <p className="text-[10px] font-mono text-muted-foreground/50">
+                    The update script pulls the latest code, rebuilds the Docker image, and restarts the container. Your database and .env are preserved.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!gitRepo && (
+              <p className="text-xs font-mono text-muted-foreground/50 italic">
+                Enter a git repository URL above to enable update checks.
+              </p>
+            )}
           </div>
         </Card>
       </div>

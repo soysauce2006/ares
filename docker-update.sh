@@ -60,7 +60,10 @@ cd "$REPO_DIR"
 # ── 2. Rebuild containers ─────────────────────────────────────────────────────
 info "Step 2/4 — Rebuilding containers (this may take a few minutes)..."
 
-docker compose --env-file "$REPO_DIR/.env" build --no-cache
+GIT_COMMIT=$(git -C "$REPO_DIR" rev-parse HEAD 2>/dev/null || echo "unknown")
+info "Baking commit hash: $GIT_COMMIT"
+
+docker compose --env-file "$REPO_DIR/.env" build --no-cache --build-arg GIT_COMMIT="$GIT_COMMIT"
 
 success "Build complete."
 
