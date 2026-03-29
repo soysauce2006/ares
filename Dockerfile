@@ -48,7 +48,7 @@ RUN pnpm --filter @workspace/api-server deploy --prod --legacy /deploy
 # ── Production runner ──────────────────────────────────────────────────────────
 FROM node:24-slim AS runner
 RUN apt-get update -qq && \
-    apt-get install -y --no-install-recommends postgresql-client git && \
+    apt-get install -y --no-install-recommends postgresql-client git ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 ARG GIT_COMMIT=unknown
 ENV NODE_ENV=production

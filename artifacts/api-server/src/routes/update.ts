@@ -63,7 +63,14 @@ router.get("/status", requireAuth, requireAdmin, async (_req, res) => {
   try {
     const { stdout } = await execAsync(
       `git ls-remote "${gitRepo}" "refs/heads/${gitBranch}"`,
-      { timeout: 15000 }
+      {
+        timeout: 15000,
+        env: {
+          ...process.env,
+          GIT_SSL_NO_VERIFY: "1",
+          GIT_TERMINAL_PROMPT: "0",
+        },
+      }
     );
     const latestCommit = stdout.split("\t")[0]?.trim() || null;
     const updateAvailable =
