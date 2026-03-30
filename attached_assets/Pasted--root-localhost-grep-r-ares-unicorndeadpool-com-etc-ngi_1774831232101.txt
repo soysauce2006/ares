@@ -1,0 +1,41 @@
+}[root@localhost ~]#grep -r "ares.unicorndeadpool.com" /etc/nginx//
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        server_name ares.unicorndeadpool.com  www.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:    ssl_certificate /etc/letsencrypt/live/ares.unicorndeadpool.com/fullchain.pem; # managed by Certbot
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:    ssl_certificate_key /etc/letsencrypt/live/ares.unicorndeadpool.com/privkey.pem; # managed by Certbot
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        server_name webmail.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        server_name mail.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        server_name cpanel.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:    if ($host = ares.unicorndeadpool.com) {
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf:        server_name ares.unicorndeadpool.com  www.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     server_name ares.unicorndeadpool.com  www.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     server_name webmail.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     server_name mail.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     server_name cpanel.ares.unicorndeadpool.com;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.bytes bytes;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     access_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.log combined;
+/etc/nginx/conf.d/vhosts/ares.unicorndeadpool.com.conf.bak:     error_log /usr/local/apache/domlogs/ares.unicorndeadpool.com.error.log error;
+/etc/nginx/conf.d/ares.conf:    server_name ares.unicorndeadpool.com;
+/etc/nginx/conf.d/ares.conf:    server_name ares.unicorndeadpool.com;
+/etc/nginx/conf.d/ares.conf:    ssl_certificate     /etc/letsencrypt/live/ares.unicorndeadpool.com/fullchain.pem;
+/etc/nginx/conf.d/ares.conf:    ssl_certificate_key /etc/letsencrypt/live/ares.unicorndeadpool.com/privkey.pem;
